@@ -1,0 +1,168 @@
+{
+  "rule_56_front_open_space": {
+    "rule": "56(1)(a)",
+    "page": 77,
+    "max_building_height_meters": 12.5,
+    "description": "Front open space for residential buildings with height up to 12.5 meters facing street",
+    "street_width_slabs": [
+      {
+        "min_street_width_m": 0.0,
+        "max_street_width_m": 9.0,
+        "front_open_space_m": 3.0,
+        "label": "Up to 9.0 meters"
+      },
+      {
+        "min_street_width_m": 9.0001,
+        "max_street_width_m": 12.0,
+        "front_open_space_m": 3.6,
+        "label": "More than 9.0 meters and up to 12 meters"
+      },
+      {
+        "min_street_width_m": 12.0001,
+        "max_street_width_m": 18.0,
+        "front_open_space_m": 4.5,
+        "label": "More than 12.0 meters and up to 18 meters"
+      },
+      {
+        "min_street_width_m": 18.0001,
+        "max_street_width_m": null,
+        "front_open_space_m": 6.0,
+        "label": "Above 18 meters"
+      }
+    ]
+  },
+  "rule_56_rear_open_space": {
+    "rule": "56(2)(a)",
+    "page": 78,
+    "max_building_height_meters": 12.5,
+    "description": "Rear open space for residential buildings with height up to 12.5 meters",
+    "plot_area_slabs": [
+      {
+        "min_plot_area_sqm": 0.0,
+        "max_plot_area_sqm": 40.0,
+        "rear_open_space_m": 0.0,
+        "label": "Up to 40.00 sq m"
+      },
+      {
+        "min_plot_area_sqm": 40.0001,
+        "max_plot_area_sqm": 150.0,
+        "rear_open_space_m": 1.5,
+        "label": "Above 40.00 and up to 150.00 sq m"
+      },
+      {
+        "min_plot_area_sqm": 150.0001,
+        "max_plot_area_sqm": 225.0,
+        "rear_open_space_m": 2.5,
+        "label": "Above 150 and up to 225.00 sq m"
+      },
+      {
+        "min_plot_area_sqm": 225.0001,
+        "max_plot_area_sqm": null,
+        "rear_open_space_m": 3.0,
+        "label": "Above 225.00 sq m"
+      }
+    ]
+  },
+  "rule_56_side_open_space": {
+    "rule": "56(3)",
+    "page": 78,
+    "description": "Side open space for residential buildings",
+    "types": {
+      "detached": {
+        "side1_m": 3.0,
+        "side2_m": 3.0,
+        "concession": "For detached residential building up to 7m height on plots with frontage less than 12m, one side may be reduced to 1.5m."
+      },
+      "semi_detached": {
+        "side1_m": 3.0,
+        "side2_m": 0.0,
+        "concession": "For semi-detached building up to 10m height on plots with frontage up to 10m, side open space may be reduced to 2.5m."
+      },
+      "row_type": {
+        "side1_m": 0.0,
+        "side2_m": 0.0,
+        "concession": "No side open space required."
+      }
+    }
+  },
+  "rule_61_table_8_far": {
+    "rule": "61 Table 8",
+    "page": 84,
+    "description": "Floor Area Ratio (FAR) for different use groups",
+    "use_groups": {
+      "residential": {
+        "far": 1.25,
+        "category": "All residential"
+      },
+      "commercial_city_centre": {
+        "far": 2.5,
+        "category": "City Centre"
+      },
+      "commercial_sub_city_centre": {
+        "far": 2.0,
+        "category": "Sub-city center"
+      },
+      "commercial_community_centre": {
+        "far": 1.75,
+        "category": "Community Center"
+      },
+      "commercial_local_shopping": {
+        "far": 1.5,
+        "category": "Local Shopping Centre"
+      },
+      "commercial_convenience": {
+        "far": 1.25,
+        "category": "Convenience Shopping Centre"
+      },
+      "public_semi_public": {
+        "far": 1.0,
+        "category": "Administrative / Education / Health / Cultural / Institutional"
+      }
+    }
+  },
+  "rule_17_farm_house": {
+    "rule": "17",
+    "page": 34,
+    "description": "Permission of Farm House in agricultural zone",
+    "min_plot_size_ha": 0.4,
+    "min_plot_size_sqm": 4000.0,
+    "max_far": 0.1,
+    "max_height_m": 7.5,
+    "min_road_width_m": 7.5,
+    "min_mos_all_sides_m": 7.5,
+    "min_trees_per_ha": 100
+  },
+  "rule_21_fees": {
+    "application_fee": {
+      "rule": "21(2)(ii)",
+      "page": 35,
+      "rate_per_sqm_builtup_area": 1.0
+    },
+    "residential_permission_fee": {
+      "rule": "21(3)(b) Item 1",
+      "page": 36,
+      "description": "Building permission fee for exclusive residence (other than high-rise)",
+      "slabs": [
+        {"min_sqm": 0, "max_sqm": 75, "fee_rs": 750},
+        {"min_sqm": 76, "max_sqm": 125, "fee_rs": 1250},
+        {"min_sqm": 126, "max_sqm": 200, "fee_rs": 2000},
+        {"min_sqm": 201, "max_sqm": 300, "fee_rs": 3000},
+        {"min_sqm": 301, "max_sqm": 400, "fee_rs": 4000},
+        {"min_sqm": 401, "max_sqm": 600, "fee_rs": 6000},
+        {"min_sqm": 601, "max_sqm": 750, "fee_rs": 7500},
+        {"min_sqm": 751, "max_sqm": 1000, "fee_rs": 10000},
+        {"min_sqm": 1001, "max_sqm": 1250, "fee_rs": 12500},
+        {"min_sqm": 1251, "max_sqm": 1500, "fee_rs": 15000},
+        {"min_sqm": 1501, "max_sqm": 2000, "fee_rs": 20000},
+        {"min_sqm": 2001, "max_sqm": 2500, "fee_rs": 25000},
+        {"min_sqm": 2501, "max_sqm": null, "fee_rs": 50000}
+      ]
+    },
+    "commercial_surcharge": {
+      "rule": "21(3)(b) Item 2",
+      "page": 36,
+      "surcharge_percent": 50.0,
+      "description": "Commercial / Shops / Factory: Residential fee plus additional 50%"
+    }
+  }
+}

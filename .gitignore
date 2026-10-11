@@ -1,0 +1,28 @@
+# Environment variables & secrets
+.env
+*.env
+*.env.local
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Virtual environment
+venv/
+env/
+.venv/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Scratch & IDE
+scratch/
+.vscode/
+.idea/
