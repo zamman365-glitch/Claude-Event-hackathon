@@ -219,6 +219,76 @@ def get_rule_by_number(rule_no: str, db_path: Path = DEFAULT_DB_PATH) -> Optiona
     return dict(row) if row else None
 
 
+def get_all_rules(db_path: Path = DEFAULT_DB_PATH) -> List[Dict[str, Any]]:
+    """
+    Returns every rule chunk with rule_no, sub_rule, title, part, page_start, page_end.
+    """
+    if not db_path.exists():
+        init_database(db_path=db_path)
+    conn = get_db_connection(db_path)
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT id, rule, is_embedded, parent_rule, title, part, page_start, page_end FROM rules ORDER BY id"
+    )
+    rows = cur.fetchall()
+    conn.close()
+
+    result = []
+    for r in rows:
+        rule_str = r["rule"]
+        is_emb = bool(r["is_embedded"])
+        p_rule = r["parent_rule"]
+
+        result.append({
+            "rule_no": rule_str,
+            "sub_rule": rule_str if is_emb else None,
+            "title": r["title"],
+            "part": r["part"],
+            "page_start": r["page_start"],
+            "page_end": r["page_end"],
+        })
+    return result
+
+
+def search_rules_with_snippets(
+    query: str,
+    top_k: int = 10,
+    db_path: Path = DEFAULT_DB_PATH,
+) -> List[Dict[str, Any]]:
+    """
+    Searches rules using FTS5 index and returns rule_no, title, page_start, page_end, and snippet.
+    """
+    chunks = search_rules(query, top_k=top_k, db_path=db_path)
+    results = []
+    q_words = [w.lower() for w in re.findall(r"[A-Za-z0-9]+", query) if len(w) > 2]
+
+    for c in chunks:
+        text = c.get("text", "")
+        # Find best window around matching words
+        idx = -1
+        for w in q_words:
+            found = text.lower().find(w)
+            if found != -1:
+                idx = found
+                break
+
+        if idx != -1:
+            start = max(0, idx - 40)
+            end = min(len(text), idx + 160)
+            snippet = ("..." if start > 0 else "") + text[start:end].replace("\n", " ").strip() + ("..." if end < len(text) else "")
+        else:
+            snippet = text[:180].replace("\n", " ").strip() + ("..." if len(text) > 180 else "")
+
+        results.append({
+            "rule_no": c["rule"],
+            "title": c["title"],
+            "page_start": c["page_start"],
+            "page_end": c["page_end"],
+            "snippet": snippet,
+        })
+    return results
+
+
 if __name__ == "__main__":
     init_database(force=True)
     print("Database initialized successfully.")

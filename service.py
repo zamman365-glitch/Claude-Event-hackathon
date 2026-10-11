@@ -10,15 +10,29 @@ and amendment warning enrichment.
 from __future__ import annotations
 from typing import Any, Dict, List, Optional
 
+from typing import Any, Dict, List, Literal, Optional
+
 from amendments import RULES_VERSION, check_amendment_warnings
 from calculators import run_all_applicable_calculators
 from db import search_rules
 from llm import generate_answer, parse_query
-from schemas import BhumiVikasResponse, Citation, ParsedQuery
+from schemas import (
+    BhumiVikasResponse,
+    CalculationDetails,
+    Citation,
+    FarCalculation,
+    FeesCalculation,
+    FrontOpenSpaceCalculation,
+    ParsedQuery,
+    RearOpenSpaceCalculation,
+)
 from verifier import verify_answer
 
 
-def process_query(query: str) -> BhumiVikasResponse:
+def process_query(
+    query: str,
+    lang: Optional[Literal["en", "hi", "auto"]] = "auto",
+) -> BhumiVikasResponse:
     """
     Main processing pipeline:
     1. parse_query (language detection, English rewrite, parameter extraction).
@@ -40,6 +54,8 @@ def process_query(query: str) -> BhumiVikasResponse:
 
     # 1. Query Parsing
     parsed: ParsedQuery = parse_query(cleaned_query)
+    if lang in ["en", "hi"]:
+        parsed.language = lang  # type: ignore
 
     # Early exit for explicit out-of-scope questions (e.g. property tax, land market rate)
     if parsed.is_out_of_scope:
@@ -129,6 +145,36 @@ def process_query(query: str) -> BhumiVikasResponse:
         language=parsed.language,
     )
 
+    # Convert to typed CalculationDetails if present
+    typed_calc = None
+    if calculations_data:
+        front_calc = (
+            FrontOpenSpaceCalculation(**calculations_data["front_open_space"])
+            if "front_open_space" in calculations_data and calculations_data["front_open_space"].get("front_open_space_m") is not None
+            else None
+        )
+        rear_calc = (
+            RearOpenSpaceCalculation(**calculations_data["rear_open_space"])
+            if "rear_open_space" in calculations_data and calculations_data["rear_open_space"].get("rear_open_space_m") is not None
+            else None
+        )
+        far_calc = (
+            FarCalculation(**calculations_data["far"])
+            if "far" in calculations_data and calculations_data["far"].get("far") is not None
+            else None
+        )
+        fees_calc = (
+            FeesCalculation(**calculations_data["fees"])
+            if "fees" in calculations_data and calculations_data["fees"].get("total_fee_rs") is not None
+            else None
+        )
+        typed_calc = CalculationDetails(
+            front_open_space=front_calc,
+            rear_open_space=rear_calc,
+            far=far_calc,
+            fees=fees_calc,
+        )
+
     return BhumiVikasResponse(
         status=llm_output.status,
         answer=llm_output.answer,
@@ -137,7 +183,7 @@ def process_query(query: str) -> BhumiVikasResponse:
         citations=llm_output.citations,
         rules_version=RULES_VERSION,
         warnings=warnings,
-        calculation=calculations_data,
+        calculation=typed_calc,
     )
 
 

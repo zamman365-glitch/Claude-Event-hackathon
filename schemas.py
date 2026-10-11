@@ -84,8 +84,74 @@ class LLMAnswerOutput(BaseModel):
     )
 
 
+class FrontOpenSpaceCalculation(BaseModel):
+    rule: str = Field(description="Rule number, e.g. 56(1)(a)")
+    page: int = Field(description="PDF page number")
+    front_open_space_m: float = Field(description="Front setback in meters")
+    street_width_m: float = Field(description="Facing road width in meters")
+    building_height_m: float = Field(description="Building height in meters")
+    slab_label: str = Field(description="Road width category slab label")
+
+
+class RearOpenSpaceCalculation(BaseModel):
+    rule: str = Field(description="Rule number, e.g. 56(2)(a)")
+    page: int = Field(description="PDF page number")
+    rear_open_space_m: float = Field(description="Rear setback in meters")
+    plot_area_sqm: float = Field(description="Plot area in square meters")
+    slab_label: str = Field(description="Plot area category slab label")
+
+
+class FarCalculation(BaseModel):
+    rule: str = Field(description="Rule number, e.g. 61 Table 8")
+    page: int = Field(description="PDF page number")
+    use_group: str = Field(description="Land use group")
+    category: str = Field(description="Category or zone description")
+    far: float = Field(description="Permissible Floor Area Ratio")
+    plot_area_sqm: Optional[float] = Field(default=None, description="Plot area in square meters")
+    max_builtup_area_sqm: Optional[float] = Field(default=None, description="Maximum permissible built-up area")
+
+
+class FeesCalculation(BaseModel):
+    rule: str = Field(description="Rule number, e.g. 21")
+    page: int = Field(description="PDF page number")
+    built_up_area_sqm: float = Field(description="Built-up area in square meters")
+    use_group: str = Field(description="Land use group")
+    application_fee_rs: float = Field(description="Application fee in Rs")
+    permission_fee_rs: float = Field(description="Building permission fee in Rs")
+    commercial_surcharge_rs: Optional[float] = Field(default=None, description="Commercial surcharge if applicable")
+    total_fee_rs: float = Field(description="Total fee in Rs")
+
+
+class CalculationDetails(BaseModel):
+    front_open_space: Optional[FrontOpenSpaceCalculation] = None
+    rear_open_space: Optional[RearOpenSpaceCalculation] = None
+    far: Optional[FarCalculation] = None
+    fees: Optional[FeesCalculation] = None
+
+
+class RuleSummaryItem(BaseModel):
+    rule_no: str
+    sub_rule: Optional[str] = None
+    title: str
+    part: str
+    page_start: int
+    page_end: int
+
+
+class RuleSearchResultItem(BaseModel):
+    rule_no: str
+    title: str
+    page_start: int
+    page_end: int
+    snippet: str
+
+
 class QueryRequest(BaseModel):
     query: str = Field(description="The question asked by the clerk in English or Hindi")
+    lang: Optional[Literal["en", "hi", "auto"]] = Field(
+        default="auto",
+        description="Optional language override ('en', 'hi', or 'auto')"
+    )
 
 
 class BhumiVikasResponse(BaseModel):
@@ -96,5 +162,5 @@ class BhumiVikasResponse(BaseModel):
     citations: List[Citation] = Field(default_factory=list)
     rules_version: str = RULES_VERSION_CURRENT
     warnings: List[str] = Field(default_factory=list)
-    calculation: Optional[Dict[str, Any]] = None
+    calculation: Optional[CalculationDetails] = None
     disclaimer: str = LEGAL_DISCLAIMER

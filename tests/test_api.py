@@ -76,3 +76,73 @@ def test_rules_lookup_endpoint():
     assert data["rule"] == "56"
     assert data["title"] == "Residential Buildings"
     assert data["page_start"] == 77
+
+
+def test_list_all_rules():
+    resp = client.get("/api/rules")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert len(data) >= 106
+    # Verify required fields
+    r1 = data[0]
+    assert "rule_no" in r1
+    assert "sub_rule" in r1
+    assert "title" in r1
+    assert "part" in r1
+    assert "page_start" in r1
+    assert "page_end" in r1
+
+
+def test_search_rules_endpoint():
+    resp = client.get("/api/rules/search?q=open space")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert len(data) > 0
+    item = data[0]
+    assert "rule_no" in item
+    assert "title" in item
+    assert "page_start" in item
+    assert "page_end" in item
+    assert "snippet" in item
+    assert len(item["snippet"]) > 0
+
+
+def test_health_provider_and_mock():
+    resp = client.get("/api/health")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "provider" in data
+    assert "mock" in data
+    assert isinstance(data["mock"], bool)
+
+
+def test_pdf_static_mount():
+    resp = client.get("/pdf/MP_Bhumi_Vikas_Rules_2012_upto_2025-03-06_EN.pdf")
+    assert resp.status_code == 200
+    assert resp.headers["content-type"] == "application/pdf"
+
+
+def test_query_lang_override():
+    # Force English on Hindi text
+    resp_en = client.post("/api/query", json={
+        "query": "बिल्डिंग परमिशन की फीस कितनी है?",
+        "lang": "en"
+    })
+    assert resp_en.status_code == 200
+    data_en = resp_en.json()
+    assert "fees" in data_en["answer"].lower()
+
+    # Force Hindi on English text
+    resp_hi = client.post("/api/query", json={
+        "query": "What is the fee for building permission?",
+        "lang": "hi"
+    })
+    assert resp_hi.status_code == 200
+    data_hi = resp_hi.json()
+    assert "फीस" in data_hi["answer"] or "अनुमति" in data_hi["answer"]
+
+
+def test_root_endpoint():
+    resp = client.get("/")
+    assert resp.status_code == 200
+

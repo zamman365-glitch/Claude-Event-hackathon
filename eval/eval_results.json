@@ -8,7 +8,7 @@
     {
       "id": 1,
       "passed": true,
-      "latency_ms": 3.750900003069546,
+      "latency_ms": 3.0484999952022918,
       "response": {
         "status": "answered",
         "answer": "Under Rule 56(1)(a), the minimum front open space required is 3.6 meters.",
@@ -30,23 +30,19 @@
             "front_open_space_m": 3.6,
             "street_width_m": 10.0,
             "building_height_m": 9.0,
-            "slab_label": "More than 9.0 meters and up to 12 meters",
-            "numbers_produced": [
-              3.6,
-              10.0,
-              9.0
-            ]
+            "slab_label": "More than 9.0 meters and up to 12 meters"
           },
+          "rear_open_space": null,
           "far": {
             "rule": "61 Table 8",
             "page": 84,
             "use_group": "residential",
             "category": "All residential",
             "far": 1.25,
-            "numbers_produced": [
-              1.25
-            ]
-          }
+            "plot_area_sqm": null,
+            "max_builtup_area_sqm": null
+          },
+          "fees": null
         },
         "disclaimer": "The tool points to the rule; the clerk decides. It is not legal advice."
       }
@@ -54,7 +50,7 @@
     {
       "id": 2,
       "passed": true,
-      "latency_ms": 4.714200003945734,
+      "latency_ms": 4.080599996086676,
       "response": {
         "status": "answered",
         "answer": "Under Rule 17, for a farm house on agricultural land, the minimum plot size is 0.40 hectare and the maximum FAR is 0.10.",
@@ -70,26 +66,10 @@
         "rules_version": "consolidated up to 2025-03-06",
         "warnings": [],
         "calculation": {
-          "farm_house": {
-            "rule": "17",
-            "page": 34,
-            "min_plot_size_ha": 0.4,
-            "min_plot_size_sqm": 4000.0,
-            "max_far": 0.1,
-            "max_height_m": 7.5,
-            "min_marginal_open_space_m": 7.5,
-            "min_road_width_m": 7.5,
-            "min_trees_per_ha": 100,
-            "numbers_produced": [
-              0.4,
-              4000.0,
-              0.1,
-              7.5,
-              7.5,
-              7.5,
-              100
-            ]
-          }
+          "front_open_space": null,
+          "rear_open_space": null,
+          "far": null,
+          "fees": null
         },
         "disclaimer": "The tool points to the rule; the clerk decides. It is not legal advice."
       }
@@ -97,7 +77,7 @@
     {
       "id": 3,
       "passed": true,
-      "latency_ms": 1.310100000409875,
+      "latency_ms": 1.405000002705492,
       "response": {
         "status": "answered",
         "answer": "Under Rule 23, permission remains valid for 3 years, and may be revalidated for one year at a time up to a maximum period of five years.",
@@ -119,7 +99,7 @@
     {
       "id": 4,
       "passed": true,
-      "latency_ms": 2.4730000004637986,
+      "latency_ms": 2.0167000038782135,
       "response": {
         "status": "answered",
         "answer": "Under Rule 28, if the Authority fails to intimate in writing its refusal within the prescribed limitation period under Section 30(5) of the Act, the permission shall be deemed to have been sanctioned.",
@@ -141,7 +121,7 @@
     {
       "id": 5,
       "passed": true,
-      "latency_ms": 2.255499995953869,
+      "latency_ms": 2.17500000144355,
       "response": {
         "status": "answered",
         "answer": "Under Rule 52, balconies or buildings near low and medium voltage lines must maintain a minimum vertical clearance of 2.5 meters and horizontal clearance of 1.2 meters.",
@@ -163,7 +143,7 @@
     {
       "id": 6,
       "passed": true,
-      "latency_ms": 1.9696999952429906,
+      "latency_ms": 1.8424000008963048,
       "response": {
         "status": "answered",
         "answer": "Under Rule 18, plans must be prepared and signed by a registered architect, structural engineer, engineer, supervisor, or town planner according to their license qualifications, along with the applicant/owner.",
@@ -185,7 +165,7 @@
     {
       "id": 7,
       "passed": true,
-      "latency_ms": 2.0880000010947697,
+      "latency_ms": 2.062100000330247,
       "response": {
         "status": "answered",
         "answer": "Under Rule 14, an application for building permission in Appendix A-2 must be accompanied by documents, plans and statements in quadruplicate, including ownership documents, site plan, and fees.",
@@ -207,7 +187,7 @@
     {
       "id": 8,
       "passed": true,
-      "latency_ms": 2.861300003132783,
+      "latency_ms": 1.530800000182353,
       "response": {
         "status": "answered",
         "answer": "Building permission fees are governed by Rule 21, including application fee of Rs. 1 per sq. m under Rule 21(2)(ii) and slab-based permission fees specified in Rule 21(3)(b).",
@@ -229,7 +209,7 @@
     {
       "id": 9,
       "passed": true,
-      "latency_ms": 2.6360999981989153,
+      "latency_ms": 3.2248999996227212,
       "response": {
         "status": "answered",
         "answer": "Under Rule 24, no deviation from the sanctioned plan is permissible if it affects the front open space or exceeds 30% of permissible FAR; minor alterations require permission under Rule 21(3)(b) Item 8.",
@@ -251,7 +231,7 @@
     {
       "id": 10,
       "passed": true,
-      "latency_ms": 3.044400000362657,
+      "latency_ms": 3.7317000023904257,
       "response": {
         "status": "answered",
         "answer": "Under Rule 56(2)(a), for a residential plot of 150 sq m (above 40 and up to 150 sq m), the minimum rear open space is 1.50 meters.",
@@ -267,16 +247,13 @@
         "rules_version": "consolidated up to 2025-03-06",
         "warnings": [],
         "calculation": {
+          "front_open_space": null,
           "rear_open_space": {
             "rule": "56(2)(a)",
             "page": 78,
             "rear_open_space_m": 1.5,
             "plot_area_sqm": 150.0,
-            "slab_label": "Above 40.00 and up to 150.00 sq m",
-            "numbers_produced": [
-              1.5,
-              150.0
-            ]
+            "slab_label": "Above 40.00 and up to 150.00 sq m"
           },
           "far": {
             "rule": "61 Table 8",
@@ -284,11 +261,6 @@
             "use_group": "residential",
             "category": "All residential",
             "far": 1.25,
-            "numbers_produced": [
-              1.25,
-              150.0,
-              187.5
-            ],
             "plot_area_sqm": 150.0,
             "max_builtup_area_sqm": 187.5
           },
@@ -298,15 +270,9 @@
             "built_up_area_sqm": 150.0,
             "use_group": "residential",
             "application_fee_rs": 150.0,
-            "permission_fee_rs": 2000,
+            "permission_fee_rs": 2000.0,
             "commercial_surcharge_rs": null,
-            "total_fee_rs": 2150.0,
-            "numbers_produced": [
-              150.0,
-              150.0,
-              2000,
-              2150.0
-            ]
+            "total_fee_rs": 2150.0
           }
         },
         "disclaimer": "The tool points to the rule; the clerk decides. It is not legal advice."
@@ -315,7 +281,7 @@
     {
       "id": 11,
       "passed": true,
-      "latency_ms": 3.3141000021714717,
+      "latency_ms": 4.153000001679175,
       "response": {
         "status": "answered",
         "answer": "Under Rule 2(5)(c) as amended on 28 August 2026, for plots up to 500 sq m conforming to the approved Development Plan, separate development permission is NOT required; building permission can be directly granted by the local body.",
@@ -333,16 +299,13 @@
           "AMENDMENT WARNING (28 Aug 2026): Under the amendment to Rule 2(5)(c) of the MP Bhumi Vikas Rules 2012, construction/reconstruction on plots up to 500 sq. metres that conforms to the approved Development Plan does NOT require separate development permission under Rule 2(5)(a); building permission may be granted directly by the local authority."
         ],
         "calculation": {
+          "front_open_space": null,
           "rear_open_space": {
             "rule": "56(2)(a)",
             "page": 78,
             "rear_open_space_m": 3.0,
             "plot_area_sqm": 300.0,
-            "slab_label": "Above 225.00 sq m",
-            "numbers_produced": [
-              3.0,
-              300.0
-            ]
+            "slab_label": "Above 225.00 sq m"
           },
           "far": {
             "rule": "61 Table 8",
@@ -350,11 +313,6 @@
             "use_group": "residential",
             "category": "All residential",
             "far": 1.25,
-            "numbers_produced": [
-              1.25,
-              300.0,
-              375.0
-            ],
             "plot_area_sqm": 300.0,
             "max_builtup_area_sqm": 375.0
           },
@@ -364,15 +322,9 @@
             "built_up_area_sqm": 300.0,
             "use_group": "residential",
             "application_fee_rs": 300.0,
-            "permission_fee_rs": 3000,
+            "permission_fee_rs": 3000.0,
             "commercial_surcharge_rs": null,
-            "total_fee_rs": 3300.0,
-            "numbers_produced": [
-              300.0,
-              300.0,
-              3000,
-              3300.0
-            ]
+            "total_fee_rs": 3300.0
           }
         },
         "disclaimer": "The tool points to the rule; the clerk decides. It is not legal advice."
@@ -381,7 +333,7 @@
     {
       "id": 12,
       "passed": true,
-      "latency_ms": 1.139500003773719,
+      "latency_ms": 1.1940999975195155,
       "response": {
         "status": "answered",
         "answer": "Under Rule 103 (Provisions of development plan to take precedence), where provisions of the Development Plan and these rules conflict, the provisions of the Development Plan shall prevail.",
@@ -403,7 +355,7 @@
     {
       "id": 13,
       "passed": true,
-      "latency_ms": 1.748900001985021,
+      "latency_ms": 1.6609000012977049,
       "response": {
         "status": "answered",
         "answer": "Under Rule 83, provision for lifts is mandatory for any building more than 12.5 meters in height (which includes buildings taller than 15 m), designed in accordance with the National Building Code.",
@@ -425,7 +377,7 @@
     {
       "id": 14,
       "passed": true,
-      "latency_ms": 3.4827999988920055,
+      "latency_ms": 2.914999997301493,
       "response": {
         "status": "answered",
         "answer": "म.प्र. भूमि विकास नियम 56(1)(क) के अनुसार, सामने की ओर न्यूनतम 3.0 मीटर खुली जगह (front open space) छोड़नी होगी।",
@@ -447,23 +399,14 @@
             "front_open_space_m": 3.0,
             "street_width_m": 9.0,
             "building_height_m": 9.0,
-            "slab_label": "Up to 9.0 meters",
-            "numbers_produced": [
-              3.0,
-              9.0,
-              9.0
-            ]
+            "slab_label": "Up to 9.0 meters"
           },
           "rear_open_space": {
             "rule": "56(2)(a)",
             "page": 78,
             "rear_open_space_m": 2.5,
             "plot_area_sqm": 200.0,
-            "slab_label": "Above 150 and up to 225.00 sq m",
-            "numbers_produced": [
-              2.5,
-              200.0
-            ]
+            "slab_label": "Above 150 and up to 225.00 sq m"
           },
           "far": {
             "rule": "61 Table 8",
@@ -471,11 +414,6 @@
             "use_group": "residential",
             "category": "All residential",
             "far": 1.25,
-            "numbers_produced": [
-              1.25,
-              200.0,
-              250.0
-            ],
             "plot_area_sqm": 200.0,
             "max_builtup_area_sqm": 250.0
           },
@@ -485,15 +423,9 @@
             "built_up_area_sqm": 200.0,
             "use_group": "residential",
             "application_fee_rs": 200.0,
-            "permission_fee_rs": 2000,
+            "permission_fee_rs": 2000.0,
             "commercial_surcharge_rs": null,
-            "total_fee_rs": 2200.0,
-            "numbers_produced": [
-              200.0,
-              200.0,
-              2000,
-              2200.0
-            ]
+            "total_fee_rs": 2200.0
           }
         },
         "disclaimer": "The tool points to the rule; the clerk decides. It is not legal advice."
@@ -502,7 +434,7 @@
     {
       "id": 15,
       "passed": true,
-      "latency_ms": 2.2364999967976473,
+      "latency_ms": 1.6667000018060207,
       "response": {
         "status": "answered",
         "answer": "भवन निर्माण अनुमति की फीस नियम 21 में दी गई है, जिसमें आवेदन शुल्क रु 1 प्रति वर्ग मीटर और नियम 21(3)(ख) के अनुसार स्लैब-वार अनुमति शुल्क लगता है।",
@@ -524,7 +456,7 @@
     {
       "id": 16,
       "passed": true,
-      "latency_ms": 0.024000000848900527,
+      "latency_ms": 0.01670000347075984,
       "response": {
         "status": "not_found",
         "answer": "not found",
@@ -540,7 +472,7 @@
     {
       "id": 17,
       "passed": true,
-      "latency_ms": 0.01460000203223899,
+      "latency_ms": 0.012899996363557875,
       "response": {
         "status": "not_found",
         "answer": "not found",
