@@ -6,12 +6,12 @@
 
 import axios from 'axios'
 
-// Base URL comes from env var; default to empty string for mock/local
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ''
+// Base URL comes from env var (VITE_API_URL or VITE_API_BASE_URL); default to empty string for relative routing
+const BASE_URL = import.meta.env.VITE_API_URL ?? import.meta.env.VITE_API_BASE_URL ?? ''
 
 export const apiClient = axios.create({
   baseURL: BASE_URL,
-  timeout: 10_000,
+  timeout: 45_000,
   headers: { 'Content-Type': 'application/json' },
 })
 

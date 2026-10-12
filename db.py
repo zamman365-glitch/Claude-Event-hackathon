@@ -11,8 +11,9 @@ from typing import Any, Dict, List, Optional
 
 from data_prep import clean_and_split_rules, normalize_whitespace
 
-DEFAULT_DB_PATH = Path("data/bhumi_vikas.db")
-DEFAULT_JSONL_PATH = Path("data/bhumi_vikas_rules.jsonl")
+BASE_DIR = Path(__file__).resolve().parent
+DEFAULT_DB_PATH = BASE_DIR / "data" / "bhumi_vikas.db"
+DEFAULT_JSONL_PATH = BASE_DIR / "data" / "bhumi_vikas_rules.jsonl"
 
 
 def get_db_connection(db_path: Path = DEFAULT_DB_PATH) -> sqlite3.Connection:

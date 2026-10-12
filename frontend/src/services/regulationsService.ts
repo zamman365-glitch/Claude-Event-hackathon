@@ -3,7 +3,14 @@
  * Sourced from authentic Madhya Pradesh statutory rules in src/assets/data/regulationsData.ts
  */
 
-import type { StatutoryRule, RegulationCategory } from '../types'
+import { apiClient } from './api'
+import type {
+  StatutoryRule,
+  RegulationCategory,
+  RuleSummaryItem,
+  RuleSearchResultItem,
+  RuleDetailItem,
+} from '../types'
 import { STATUTORY_RULES } from '../assets/data/regulationsData'
 import { REGULATION_CATEGORIES } from '../assets/data/mockQA'
 
@@ -100,6 +107,40 @@ export const regulationsService = {
         matchesTopic
       )
     })
+  },
+
+  /** Check if GET /api/rules endpoint exists and is reachable */
+  checkApiRulesAvailable: async (): Promise<boolean> => {
+    try {
+      const res = await apiClient.get('/api/rules')
+      return res.status === 200 && Array.isArray(res.data) && res.data.length > 0
+    } catch {
+      return false
+    }
+  },
+
+  /** Retrieve all rules from FastAPI GET /api/rules */
+  fetchApiRules: async (): Promise<RuleSummaryItem[]> => {
+    const res = await apiClient.get<RuleSummaryItem[]>('/api/rules')
+    return res.data
+  },
+
+  /** Search rules via FastAPI GET /api/rules/search?q=... */
+  searchApiRules: async (query: string): Promise<RuleSearchResultItem[]> => {
+    const res = await apiClient.get<RuleSearchResultItem[]>('/api/rules/search', {
+      params: { q: query },
+    })
+    return res.data
+  },
+
+  /** Fetch rule details via FastAPI GET /api/rules/{rule_no} */
+  fetchApiRuleDetail: async (ruleNo: string): Promise<RuleDetailItem | null> => {
+    try {
+      const res = await apiClient.get<RuleDetailItem>(`/api/rules/${encodeURIComponent(ruleNo)}`)
+      return res.data
+    } catch {
+      return null
+    }
   },
 }
 

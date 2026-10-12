@@ -1,16 +1,16 @@
 /**
  * Navbar — Accessible sticky navigation bar with language selector (EN/HI),
  * civic-tech branding, responsive mobile drawer, and direct links to
- * Ask a Question, Explore Regulations, Query History, and Land Records.
+ * Ask a Question, Explore Regulations (when available), and Query History.
+ * LandRecords nav item is hidden as per specification.
  */
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import {
   MessageSquare,
   BookOpen,
   History,
-  Map,
   Leaf,
   Globe,
   LayoutDashboard,
@@ -20,23 +20,45 @@ import {
 import { APP_NAME, APP_TAGLINE } from '../../constants/app'
 import { useLanguage } from '../../context/LanguageContext'
 import { useTheme } from '../../context/ThemeContext'
+import { regulationsService } from '../../services/regulationsService'
 
-const NAV_ITEMS = [
-  { key: 'dashboard'         as const, to: '/',            icon: <LayoutDashboard size={15} /> },
-  { key: 'askQuestion'       as const, to: '/qa',          icon: <MessageSquare size={15} /> },
-  { key: 'exploreRegulations'as const, to: '/regulations', icon: <BookOpen size={15} /> },
-  { key: 'queryHistory'      as const, to: '/history',      icon: <History size={15} /> },
-  { key: 'landRecords'       as const, to: '/land-records', icon: <Map size={15} /> },
+const BASE_NAV_ITEMS = [
+  { key: 'dashboard' as const, to: '/', icon: <LayoutDashboard size={15} /> },
+  { key: 'askQuestion' as const, to: '/qa', icon: <MessageSquare size={15} /> },
+  { key: 'exploreRegulations' as const, to: '/regulations', icon: <BookOpen size={15} /> },
+  { key: 'queryHistory' as const, to: '/history', icon: <History size={15} /> },
 ]
 
 export const Navbar = () => {
   const { lang, toggle, t } = useLanguage()
   const { theme, toggleTheme } = useTheme()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [rulesAvailable, setRulesAvailable] = useState<boolean>(false)
+
+  useEffect(() => {
+    let mounted = true
+    regulationsService
+      .checkApiRulesAvailable()
+      .then((avail) => {
+        if (mounted) setRulesAvailable(avail)
+      })
+      .catch(() => {
+        if (mounted) setRulesAvailable(false)
+      })
+    return () => {
+      mounted = false
+    }
+  }, [])
 
   const closeMenu = () => setMenuOpen(false)
 
   const themeLabel = theme === 'dark' ? t('themeSwitchLight') : t('themeSwitchDark')
+
+  // Filter items: hide exploreRegulations if API rules don't exist
+  const navItems = BASE_NAV_ITEMS.filter((item) => {
+    if (item.key === 'exploreRegulations') return rulesAvailable
+    return true
+  })
 
   return (
     <>
@@ -63,7 +85,7 @@ export const Navbar = () => {
 
         {/* Desktop Nav */}
         <ul className="navbar-nav" role="list">
-          {NAV_ITEMS.map(({ key, to, icon }) => (
+          {navItems.map(({ key, to, icon }) => (
             <li key={key}>
               <NavLink
                 to={to}
@@ -144,7 +166,7 @@ export const Navbar = () => {
         aria-label="Mobile navigation"
         aria-hidden={!menuOpen}
       >
-        {NAV_ITEMS.map(({ key, to, icon }) => (
+        {navItems.map(({ key, to, icon }) => (
           <NavLink
             key={key}
             to={to}

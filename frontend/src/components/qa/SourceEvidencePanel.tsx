@@ -179,6 +179,7 @@ export const SourceEvidencePanel = ({
 
                       <blockquote
                         className="evidence-quote"
+                        style={{ whiteSpace: 'pre-wrap' }}
                         lang={item.textLanguage === 'hi' ? 'hi' : 'en'}
                       >
                         {item.originalText}

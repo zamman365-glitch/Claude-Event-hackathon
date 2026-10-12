@@ -1,6 +1,6 @@
 /**
  * useAsk — React hook for the Q&A feature.
- * Manages ask state, history accumulation, and re-ask from history.
+ * Manages ask state, needs_info handling, history accumulation, and re-ask from history.
  */
 
 import { useState, useCallback, useEffect } from 'react'
@@ -11,16 +11,19 @@ export const useAsk = () => {
   const [state, setState] = useState<AskState>({ status: 'idle' })
   const [history, setHistory] = useState<QueryHistoryEntry[]>([])
 
-  // Load initial history from service
+  // Load initial history from service (starts empty)
   useEffect(() => {
     let mounted = true
-    qaService.getHistory().then((initialHistory) => {
-      if (mounted && initialHistory) {
-        setHistory(initialHistory)
-      }
-    }).catch(() => {
-      // Graceful fallback if initial history fetch fails
-    })
+    qaService
+      .getHistory()
+      .then((initialHistory) => {
+        if (mounted && initialHistory) {
+          setHistory(initialHistory)
+        }
+      })
+      .catch(() => {
+        // Graceful fallback if initial history fetch fails
+      })
     return () => {
       mounted = false
     }
@@ -40,7 +43,14 @@ export const useAsk = () => {
 
       const answer = await qaService.askQuestion(trimmed)
 
-      if (answer.evidenceLevel === 'insufficient') {
+      if (answer.status === 'needs_info') {
+        setState({
+          status: 'needs_info',
+          answer,
+          clarifying_question: answer.clarifying_question || answer.answerText,
+          original_question: trimmed,
+        })
+      } else if (answer.evidenceLevel === 'insufficient') {
         setState({ status: 'insufficient-evidence', answer })
         // Also register in history so user can see it in history
         setHistory((prev) => [
@@ -77,7 +87,19 @@ export const useAsk = () => {
     }
   }, [])
 
+  const submitFollowUp = useCallback(
+    (followUpDetails: string) => {
+      if (state.status === 'needs_info') {
+        const combined = `${state.original_question} ${followUpDetails}`.trim()
+        return ask(combined)
+      }
+    },
+    [state, ask],
+  )
+
   const reset = useCallback(() => setState({ status: 'idle' }), [])
 
-  return { state, history, ask, reset }
+  return { state, history, ask, submitFollowUp, reset }
 }
+
+export default useAsk

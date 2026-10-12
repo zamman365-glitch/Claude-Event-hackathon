@@ -395,26 +395,83 @@ A comprehensive, accessible, and polished Dark/Light theme system has been integ
 
 ---
 
+## FastAPI Backend Integration & Live Regulatory Grounding
+
+The frontend is connected directly to the FastAPI backend service (`http://localhost:8000`) without rebuilding the user interface:
+
+### 1. Reverse Proxy & Network Configuration
+- **Vite Proxy (`vite.config.ts`):** Configured reverse proxies for `/api` and `/pdf` targeting `http://localhost:8000` with `changeOrigin: true`.
+- **Axios Client (`src/services/api.ts`):** `baseURL` remains `''` (relative URLs resolving through proxy or direct host). Axios timeout raised to `45,000 ms` to comfortably accommodate LLM retrieval & verification rounds.
+
+### 2. Live Statutory Q&A Service & Response Adapter
+- **Endpoint (`src/services/qaService.ts`):** `qaService.askQuestion()` issues live `POST /api/query` requests with payload `{ query: cleanQuestion }`.
+- **Adapter Mapping (`mapBackendResponseToQAAnswer`):**
+  - Backend `status === 'answered'` (no warnings) $\rightarrow$ `evidenceLevel: 'verified'`.
+  - Backend `status === 'answered'` (with warnings) $\rightarrow$ `evidenceLevel: 'needs-verification'`.
+  - Backend `status === 'not_found'` $\rightarrow$ `evidenceLevel: 'insufficient'`.
+  - Backend `status === 'needs_info'` $\rightarrow$ `evidenceLevel: 'needs-verification'`.
+  - Backend `citations[{ rule, page, quote }]` $\rightarrow$ `evidence[]` with exact PDF page links (`/pdf/MP_Bhumi_Vikas_Rules_2012_upto_2025-03-06_EN.pdf#page=...`) and verbatim quotes.
+  - Constant document title strictly assigned: `"MP Bhumi Vikas Rules 2012 (consolidated to 6 Mar 2025)"`.
+- **Honest Grounding:** `retrievalEngine` and `STATUTORY_RULES` have been removed from the live answer path. The frontend never displays "verified" for any answer not directly returned by the FastAPI backend.
+
+### 3. Missing Information / Clarifying Question Workflow
+- **`needs_info` Handling (`src/hooks/useAsk.ts` & `src/components/qa/StateViews.tsx`):**
+  - When backend returns `status === 'needs_info'`, the application transitions to `needs_info` state.
+  - `NeedsInfoStateView` displays the original query along with the backend's `clarifying_question`.
+  - An inline follow-up input allows the clerk/citizen to supply missing parameters (e.g., road width or plot size).
+  - Submitting resubmits the combined query (`${originalQuestion} ${followUpDetails}`) directly to `POST /api/query`.
+
+### 4. Comprehensive Answer Presentation & Standards
+- **AnswerCard Updates (`src/components/qa/AnswerCard.tsx`):**
+  - **Rules Version:** Displayed in the card header (e.g. `consolidated up to 2025-03-06`).
+  - **Statutory Warnings (`warnings[]`):** Displayed in an alert container detailing post-consolidation amendments (e.g. notifications dated 28 Aug 2026).
+  - **Calculations Section (`calculation`):** Formatted cards for:
+    - `front_open_space`: front setback (m), street width (m), building height (m), slab category label, Rule and page.
+    - `rear_open_space`: rear setback (m), plot area (sqm), slab category label, Rule and page.
+    - `far`: permissible FAR, land use group, category, max built-up area (sqm), Rule and page.
+    - `fees`: total fee (Rs), application fee, permission fee, commercial surcharge, built-up area (sqm), Rule and page.
+  - **Verbatim Legal Text:** Official English text quotes rendered with `white-space: pre-wrap`.
+
+### 5. Health & Demo Mode Banner
+- **Backend Health Check (`src/components/layout/Layout.tsx`):** On application mount, calls `GET /api/health`. If `mock === true`, displays a prominent, accessible "Demo mode" banner informing the user that simulated LLM responses are active.
+
+### 6. Clean Session History
+- **Initial State:** `qaService.getHistory()` starts completely empty (`[]`), discarding mock history entries (`MOCK_QUERY_HISTORY`). Queries asked in the current session populate dynamically.
+
+### 7. Rulebook Explorer (`ExploreRegulations.tsx`)
+- **Backend Driven:** Uses live FastAPI endpoints `GET /api/rules` (all rule summaries) and `GET /api/rules/search?q=...` (full-text FTS5 search with snippets).
+- **Navigation & Part/Rule Filtering:** Users browse strictly by **Part** and **Rule Number**.
+- **Availability Safeguard:** If the `/api/rules` endpoint is unavailable, the page hides itself and the Navbar link is suppressed.
+- **Rule Inspection:** Click "Inspect Text" to query `GET /api/rules/{rule_no}` and view full statutory text in a modal.
+
+### 8. Navigation Cleanup & 3D Viewer Lazy Loading
+- **Navigation:** The legacy `LandRecords` navigation item is hidden from the Navbar and mobile drawer.
+- **Code Splitting:** `Architectural3DViewer` is lazy-loaded using `React.lazy()` and `<Suspense>` in both `Home.tsx` and `RuleDetailModal.tsx`. Three.js and spatial viewer assets are completely deferred from the initial bundle.
+
+---
+
 ## Build, Test & Lint Status (Final Verification)
 
-- **Test Suite (`npm test`):**
-  - **5 test files passed, 33 tests passed (100% pass rate in ~2.2s).**
-  - Added `src/context/ThemeContext.test.ts` (4 unit tests covering theme values, toggle logic, storage persistence, and OS scheme resolution).
-- **Build (`npm run build`):**
-  - `tsc -b && vite build` completed in **~419ms**.
-  - **0 errors, 0 warnings.**
-  - Code-split bundles:
-    - Main Application: `dist/assets/index-BJYyYdcj.js` (446.03 kB │ gzip: 133.20 kB)
-    - Three.js Vendor: `dist/assets/three-vendor-C5A8w0Gz.js` (531.28 kB │ gzip: 131.72 kB)
-    - Stylesheet: `dist/assets/index-Dm2s5ZV1.css` (90.30 kB │ gzip: 13.69 kB)
-- **Lint (`npm run lint`):**
-  - `oxlint` ran across 51 files with 116 rules.
-  - **0 errors, 0 warnings.**
-- **Runtime Dev Server:**
-  - Running on `http://localhost:5173/` with Vite HMR active.
+- **Frontend Test Suite (`npm test`):**
+  - **6 test files passed, 40 tests passed (100% pass rate in ~480ms).**
+  - `src/services/qaService.test.ts` (7 tests): Unit coverage for `mapBackendResponseToQAAnswer`, status mapping, citations, calculations, warnings, empty question validation, and API dispatch.
+  - `src/services/retrievalEngine.test.ts` (16 tests): Deterministic engine coverage.
+  - `src/services/regulationsService.test.ts` (6 tests): Registry lookup and filtering.
+  - `src/context/ThemeContext.test.ts` (4 tests): Theme toggling & persistence.
+  - `src/components/visuals/Architectural3DViewer.test.ts` (4 tests): 3D spatial scenarios.
+  - `src/constants/strings.test.ts` (3 tests): 100% EN/HI key parity.
+- **Backend Pytest Suite (`python -m pytest`):**
+  - **22/22 tests passed (100% pass rate in ~0.46s).**
+  - `tests/test_api.py`, `tests/test_calculators.py`, `tests/test_prep.py`, `tests/test_verifier.py`.
+- **Frontend Linter (`npm run lint`):**
+  - `oxlint` ran across 52 files with 116 rules: **0 errors, 0 warnings**.
+- **Frontend Build (`npm run build`):**
+  - `tsc -b && vite build` succeeded in **~700ms**: **0 errors, 0 warnings**.
+  - Code-split lazy chunk: `Architectural3DViewer-DBeHxqTB.js` (27.91 kB) cleanly separated from initial bundle.
 
 ---
 
 ## Final Project Status
 
-All features, including the Master 8-Phase Roadmap and the complete Light/Dark Mode theme system, are **100% complete, verified, and ready for evaluation** at the Bhopal Impact Lab 2026 Hackathon.
+The frontend is **fully connected to the FastAPI backend**, verified with clean builds, zero linter warnings, 100% passing automated tests, and ready for production evaluation.
+

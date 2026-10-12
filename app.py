@@ -48,8 +48,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+BASE_DIR = Path(__file__).resolve().parent
+
 # Mount resources directory as static files at /pdf
-RESOURCES_DIR = Path("resources")
+RESOURCES_DIR = BASE_DIR / "resources"
 if RESOURCES_DIR.exists():
     app.mount("/pdf", StaticFiles(directory=str(RESOURCES_DIR)), name="pdf")
 
@@ -123,7 +125,7 @@ def health_check() -> Dict[str, Any]:
 
 
 # Mount frontend/dist if built, otherwise serve friendly JSON pointing to /docs
-FRONTEND_DIST = Path("frontend/dist")
+FRONTEND_DIST = BASE_DIR / "frontend" / "dist"
 if FRONTEND_DIST.exists():
     app.mount("/", StaticFiles(directory=str(FRONTEND_DIST), html=True), name="frontend")
 else:

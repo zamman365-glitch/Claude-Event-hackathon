@@ -19,10 +19,17 @@ env/
 
 # Database files
 *.db
+!data/bhumi_vikas.db
 *.sqlite
 *.sqlite3
+
+# Node & Build artifacts
+node_modules/
+dist/
+.vercel/
 
 # Scratch & IDE
 scratch/
 .vscode/
 .idea/
+

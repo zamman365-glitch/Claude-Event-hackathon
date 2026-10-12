@@ -8,13 +8,12 @@
  * - Service navigation cards (Ask Question, Explore Regulations, Query History, Land Records)
  */
 
-import { useState, type FormEvent } from 'react'
+import { useState, lazy, Suspense, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   MessageSquare,
   BookOpen,
   History,
-  Map,
   ArrowRight,
   Sprout,
   Shield,
@@ -24,7 +23,8 @@ import {
 import { useLanguage } from '../context/LanguageContext'
 import Badge from '../components/common/Badge'
 import { SUGGESTED_QUESTIONS } from '../assets/data/mockQA'
-import Architectural3DViewer from '../components/visuals/Architectural3DViewer'
+
+const Architectural3DViewer = lazy(() => import('../components/visuals/Architectural3DViewer'))
 
 const Home = () => {
   const { t, lang } = useLanguage()
@@ -77,17 +77,6 @@ const Home = () => {
       ctaKey: 'historyReask' as const,
       to: '/history',
       accentBar: '#3b82f6',
-    },
-    {
-      icon: <Map size={24} />,
-      iconBg: 'linear-gradient(135deg, #f0fdf4, #bbf7d0)',
-      iconClr: '#15803d',
-      badge: { label: 'MP Bhulekh', color: 'green' as const },
-      titleKey: 'f3Title' as const,
-      descKey: 'f3Desc' as const,
-      ctaKey: 'f3Cta' as const,
-      to: '/land-records',
-      accentBar: '#16a34a',
     },
   ]
 
@@ -196,7 +185,27 @@ const Home = () => {
           </p>
         </div>
 
-        <Architectural3DViewer />
+        <Suspense
+          fallback={
+            <div
+              style={{
+                height: '350px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'var(--clr-surface-alt, #f8fafc)',
+                borderRadius: 'var(--radius-xl)',
+                border: '1px solid var(--clr-border, #e2e8f0)',
+                color: 'var(--clr-neutral-500)',
+                fontSize: '14px',
+              }}
+            >
+              Loading 3D Spatial Viewer...
+            </div>
+          }
+        >
+          <Architectural3DViewer />
+        </Suspense>
       </section>
 
       {/* ── Dashboard Feature Grid ── */}

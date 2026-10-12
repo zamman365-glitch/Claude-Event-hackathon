@@ -1,140 +1,177 @@
 /**
  * ExploreRegulations — Explore Madhya Pradesh Building & Land Regulations
- * Features:
- * - Browse rules by topic, category, rule number, or legislation
- * - Search clauses and verbatim original statutory text
- * - View matching rules with metadata (clause, subclause, PDF page, numerical standards)
- * - Open a rule in RuleDetailModal to inspect verbatim text, units, and citation
- * - Open corresponding PDF page when technically supported
- * - Quick rule jump chips and deep-linking via ?q= or ?rule=
+ *
+ * Sourced from FastAPI GET /api/rules and GET /api/rules/search.
+ * Browses by Part and rule number only.
+ * Hides the page if the endpoints do not exist.
  */
 
-import { useState, useMemo } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useState, useEffect, useMemo, type FormEvent } from 'react'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import {
-  BookOpen,
-  Filter,
   FileText,
   ExternalLink,
   Shield,
-  Layers,
-  Sparkles,
   Search,
   Scale,
-  RefreshCw,
+  X,
+  Layers,
 } from 'lucide-react'
-import { STATUTORY_RULES } from '../assets/data/regulationsData'
-import { REGULATION_CATEGORIES } from '../assets/data/mockQA'
+import { regulationsService } from '../services/regulationsService'
 import { useLanguage } from '../context/LanguageContext'
-import type { StatutoryRule } from '../types'
-import RuleDetailModal from '../components/qa/RuleDetailModal'
-import Badge from '../components/common/Badge'
+import type { RuleSummaryItem, RuleSearchResultItem, RuleDetailItem } from '../types'
+import Modal from '../components/common/Modal'
+import Spinner from '../components/common/Spinner'
 
 export const ExploreRegulations = () => {
-  const { t, lang } = useLanguage()
-  const [searchParams, setSearchParams] = useSearchParams()
+  const { t } = useLanguage()
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
 
-  const initialParam = searchParams.get('q') || searchParams.get('rule') || ''
-  const initialExactMatch = initialParam
-    ? STATUTORY_RULES.find(
-        (r) =>
-          r.ruleNumber.toLowerCase() === initialParam.toLowerCase() ||
-          r.clause.toLowerCase() === initialParam.toLowerCase() ||
-          r.id.toLowerCase() === initialParam.toLowerCase(),
-      ) || null
-    : null
+  const initialQuery = searchParams.get('q') || ''
 
   // State
-  const [searchQuery, setSearchQuery] = useState(initialParam)
-  const [selectedCategory, setSelectedCategory] = useState<string>('all')
-  const [selectedTopic, setSelectedTopic] = useState<string>('all')
-  const [selectedDoc, setSelectedDoc] = useState<string>('all')
-  const [inspectingRule, setInspectingRule] = useState<StatutoryRule | null>(initialExactMatch)
-  const [isModalOpen, setIsModalOpen] = useState(initialExactMatch !== null)
+  const [isAvailable, setIsAvailable] = useState<boolean | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [rules, setRules] = useState<RuleSummaryItem[]>([])
+  const [searchQuery, setSearchQuery] = useState(initialQuery)
+  const [isSearching, setIsSearching] = useState(false)
+  const [searchResults, setSearchResults] = useState<RuleSearchResultItem[] | null>(null)
+  const [selectedPart, setSelectedPart] = useState<string>('all')
+  const [ruleNumberFilter, setRuleNumberFilter] = useState<string>('')
 
-  // Extract distinct topics and document titles
-  const allTopics = useMemo(() => {
-    return Array.from(new Set(STATUTORY_RULES.map((r) => r.topic))).sort()
+  // Modal inspection
+  const [inspectingRule, setInspectingRule] = useState<RuleDetailItem | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isLoadingDetail, setIsLoadingDetail] = useState(false)
+
+  // Verify endpoint availability and load rules
+  useEffect(() => {
+    let mounted = true
+
+    regulationsService
+      .fetchApiRules()
+      .then((data) => {
+        if (!mounted) return
+        if (Array.isArray(data) && data.length > 0) {
+          setRules(data)
+          setIsAvailable(true)
+        } else {
+          setIsAvailable(false)
+        }
+      })
+      .catch(() => {
+        if (!mounted) return
+        setIsAvailable(false)
+      })
+      .finally(() => {
+        if (mounted) setIsLoading(false)
+      })
+
+    return () => {
+      mounted = false
+    }
   }, [])
 
-  const allDocuments = useMemo(() => {
-    return Array.from(new Set(STATUTORY_RULES.map((r) => r.documentTitle))).sort()
-  }, [])
+  // Execute search when searchQuery is provided
+  useEffect(() => {
+    const trimmed = searchQuery.trim()
+    if (!isAvailable || !trimmed) {
+      return
+    }
 
-  // Filtered rules
-  const filteredRules = useMemo(() => {
-    const term = searchQuery.trim().toLowerCase()
+    let active = true
+    const timer = setTimeout(() => {
+      setIsSearching(true)
+      regulationsService
+        .searchApiRules(trimmed)
+        .then((res) => {
+          if (active) setSearchResults(res)
+        })
+        .catch(() => {
+          if (active) setSearchResults([])
+        })
+        .finally(() => {
+          if (active) setIsSearching(false)
+        })
+    }, 200)
 
-    return STATUTORY_RULES.filter((rule) => {
-      // Category filter
-      if (selectedCategory !== 'all' && rule.categoryId !== selectedCategory) {
+    return () => {
+      active = false
+      clearTimeout(timer)
+    }
+  }, [searchQuery, isAvailable])
+
+  // Extract distinct Parts from rules
+  const distinctParts = useMemo(() => {
+    const parts = Array.from(new Set(rules.map((r) => r.part))).filter(Boolean)
+    return parts.sort()
+  }, [rules])
+
+  // Filter rules by Part and rule number
+  const displayedRules = useMemo(() => {
+    if (searchResults !== null) {
+      // User performed full-text search
+      return searchResults.filter((r) => {
+        if (ruleNumberFilter && !r.rule_no.toLowerCase().includes(ruleNumberFilter.toLowerCase())) {
+          return false
+        }
+        return true
+      })
+    }
+
+    return rules.filter((r) => {
+      if (selectedPart !== 'all' && r.part !== selectedPart) {
         return false
       }
-
-      // Topic filter
-      if (selectedTopic !== 'all' && rule.topic.toLowerCase() !== selectedTopic.toLowerCase()) {
+      if (ruleNumberFilter && !r.rule_no.toLowerCase().includes(ruleNumberFilter.toLowerCase())) {
         return false
       }
-
-      // Document filter
-      if (selectedDoc !== 'all' && rule.documentTitle.toLowerCase() !== selectedDoc.toLowerCase()) {
-        return false
-      }
-
-      // Query text search across ruleNumber, clause, subclause, titles, and original statutory text
-      if (!term) return true
-
-      const matchesRuleNumber = rule.ruleNumber.toLowerCase().includes(term)
-      const matchesClause = rule.clause.toLowerCase().includes(term)
-      const matchesSubclause = rule.subclause ? rule.subclause.toLowerCase().includes(term) : false
-      const matchesTitleEn = rule.titleEn.toLowerCase().includes(term)
-      const matchesTitleHi = rule.titleHi.toLowerCase().includes(term)
-      const matchesTextEn = rule.originalTextEn.toLowerCase().includes(term)
-      const matchesTextHi = rule.originalTextHi ? rule.originalTextHi.toLowerCase().includes(term) : false
-      const matchesDoc = rule.documentTitle.toLowerCase().includes(term)
-      const matchesTopic = rule.topic.toLowerCase().includes(term)
-
-      return (
-        matchesRuleNumber ||
-        matchesClause ||
-        matchesSubclause ||
-        matchesTitleEn ||
-        matchesTitleHi ||
-        matchesTextEn ||
-        matchesTextHi ||
-        matchesDoc ||
-        matchesTopic
-      )
+      return true
     })
-  }, [searchQuery, selectedCategory, selectedTopic, selectedDoc])
+  }, [rules, searchResults, selectedPart, ruleNumberFilter])
 
-  const handleOpenRule = (rule: StatutoryRule) => {
-    setInspectingRule(rule)
+  // Open modal with authoritative text
+  const handleInspectRule = async (ruleNo: string) => {
+    setIsLoadingDetail(true)
     setIsModalOpen(true)
-  }
-
-  const handleCloseModal = () => {
-    setIsModalOpen(false)
-  }
-
-  const handleQuickJump = (ruleNumber: string) => {
-    setSearchQuery(ruleNumber)
-    setSelectedCategory('all')
-    setSelectedTopic('all')
-    setSelectedDoc('all')
-    const match = STATUTORY_RULES.find((r) => r.ruleNumber === ruleNumber)
-    if (match) {
-      setInspectingRule(match)
-      setIsModalOpen(true)
+    try {
+      const detail = await regulationsService.fetchApiRuleDetail(ruleNo)
+      setInspectingRule(detail)
+    } catch {
+      setInspectingRule(null)
+    } finally {
+      setIsLoadingDetail(false)
     }
   }
 
-  const handleResetFilters = () => {
-    setSearchQuery('')
-    setSelectedCategory('all')
-    setSelectedTopic('all')
-    setSelectedDoc('all')
-    setSearchParams({})
+  const handleSearchSubmit = (e: FormEvent) => {
+    e.preventDefault()
+  }
+
+  // If endpoint check failed, hide the page
+  if (isAvailable === false) {
+    return (
+      <div className="explore-page-wrapper" style={{ padding: 'var(--space-8) var(--space-4)', textAlign: 'center' }}>
+        <p style={{ color: 'var(--clr-neutral-500)' }}>Regulations directory is currently unavailable.</p>
+        <button
+          type="button"
+          onClick={() => navigate('/')}
+          className="btn btn-secondary btn-sm"
+          style={{ marginTop: 'var(--space-4)' }}
+        >
+          Return to Dashboard
+        </button>
+      </div>
+    )
+  }
+
+  if (isLoading || isAvailable === null) {
+    return (
+      <div className="explore-page-wrapper" style={{ display: 'flex', justifyContent: 'center', padding: 'var(--space-12)' }}>
+        <Spinner size="lg" />
+      </div>
+    )
   }
 
   return (
@@ -144,36 +181,30 @@ export const ExploreRegulations = () => {
         <div className="explore-header-top-row">
           <div className="explore-badge-civic">
             <Shield size={14} aria-hidden />
-            <span>Madhya Pradesh Statutory Registry</span>
+            <span>MP Bhumi Vikas Rules (Consolidated to 6 Mar 2025)</span>
           </div>
           <span className="explore-count-tag">
             <Layers size={13} aria-hidden />
-            {STATUTORY_RULES.length} Statutory Rules Indexed
+            {rules.length} Statutory Rules
           </span>
         </div>
 
         <h1 className="explore-main-heading">{t('exploreTitle')}</h1>
-        <p className="explore-main-subheading">{t('exploreSubtitle')}</p>
+        <p className="explore-main-subheading">
+          Browse authoritative rules by Part and Rule Number, with exact official Gazette PDF citations.
+        </p>
 
-        {/* ── Scope Disclosure Notice ── */}
-        <div className="explore-scope-notice-banner" role="note">
-          <span className="scope-notice-pill">Curated Prototype Corpus</span>
-          <p className="scope-notice-text">
-            Currently displaying <strong>{STATUTORY_RULES.length} authoritative statutory clauses</strong> curated from MP Bhumi Vikas Niyam 2012, MP Land Revenue Code 1959, MP Panchayat Raj Act 1993, and RFCTLARR 2013 with verified Gazette PDF citations. Full multi-chapter gazette indexing is scheduled for Phase 4.
-          </p>
-        </div>
-
-        {/* ── Search Input ── */}
-        <div className="explore-search-box-wrap">
+        {/* ── Search Input (GET /api/rules/search) ── */}
+        <form onSubmit={handleSearchSubmit} className="explore-search-box-wrap" role="search">
           <div className="explore-search-input-inner">
             <Search size={18} className="explore-search-icon" aria-hidden />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={t('searchRulesPlaceholder')}
+              placeholder="Search MP Bhumi Vikas Rules by keyword or topic..."
               className="explore-main-search-input"
-              aria-label={t('searchRulesPlaceholder')}
+              aria-label="Search regulations"
             />
             {searchQuery && (
               <button
@@ -186,262 +217,200 @@ export const ExploreRegulations = () => {
               </button>
             )}
           </div>
-        </div>
+        </form>
+      </section>
 
-        {/* ── Quick Rule Jump Chips ── */}
-        <div className="quick-jump-strip">
-          <span className="quick-jump-label">
-            <Sparkles size={12} aria-hidden /> {t('quickRuleJump')}:
-          </span>
-          <div className="quick-jump-chips">
-            {STATUTORY_RULES.slice(0, 7).map((r) => (
-              <button
-                key={r.id}
-                type="button"
-                onClick={() => handleQuickJump(r.ruleNumber)}
-                className="quick-jump-btn"
-                title={`Inspect ${r.ruleNumber} (${r.topic})`}
-              >
-                <span>{r.ruleNumber}</span>
-              </button>
+      {/* ── Browse by Part and Rule Number Controls ── */}
+      <section className="explore-filters-bar" aria-label="Browse by Part and Rule Number">
+        <div className="explore-filter-group">
+          <label htmlFor="part-select" className="filter-label">
+            Part:
+          </label>
+          <select
+            id="part-select"
+            value={selectedPart}
+            onChange={(e) => setSelectedPart(e.target.value)}
+            className="select"
+            disabled={searchResults !== null}
+          >
+            <option value="all">All Parts ({distinctParts.length})</option>
+            {distinctParts.map((part) => (
+              <option key={part} value={part}>
+                {part}
+              </option>
             ))}
-          </div>
+          </select>
         </div>
+
+        <div className="explore-filter-group">
+          <label htmlFor="rule-no-filter" className="filter-label">
+            Rule Number:
+          </label>
+          <input
+            id="rule-no-filter"
+            type="text"
+            value={ruleNumberFilter}
+            onChange={(e) => setRuleNumberFilter(e.target.value)}
+            placeholder="e.g. 56, 14, 21..."
+            className="input"
+            style={{ width: '140px' }}
+          />
+        </div>
+
+        {(selectedPart !== 'all' || ruleNumberFilter || searchQuery) && (
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedPart('all')
+              setRuleNumberFilter('')
+              setSearchQuery('')
+              setSearchResults(null)
+            }}
+            className="btn btn-secondary btn-xs"
+            style={{ alignSelf: 'flex-end', height: '36px' }}
+          >
+            <X size={13} aria-hidden />
+            <span>Reset</span>
+          </button>
+        )}
       </section>
 
-      {/* ── Filter Controls Row ── */}
-      <section className="explore-filters-container" aria-label="Filters">
-        <div className="filters-grid">
-          {/* Category Dropdown */}
-          <div className="filter-group">
-            <label htmlFor="category-select" className="filter-label">
-              <Filter size={12} aria-hidden /> {t('filterByCategory')}
-            </label>
-            <select
-              id="category-select"
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="filter-select"
-            >
-              <option value="all">{t('allCategories')}</option>
-              {REGULATION_CATEGORIES.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {lang === 'hi' ? c.titleHi : c.titleEn}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Topic Dropdown */}
-          <div className="filter-group">
-            <label htmlFor="topic-select" className="filter-label">
-              <Layers size={12} aria-hidden /> {t('filterByTopic')}
-            </label>
-            <select
-              id="topic-select"
-              value={selectedTopic}
-              onChange={(e) => setSelectedTopic(e.target.value)}
-              className="filter-select"
-            >
-              <option value="all">{t('allTopics')}</option>
-              {allTopics.map((topic) => (
-                <option key={topic} value={topic}>
-                  {topic}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Document / Act Dropdown */}
-          <div className="filter-group">
-            <label htmlFor="doc-select" className="filter-label">
-              <BookOpen size={12} aria-hidden /> {t('filterByDocument')}
-            </label>
-            <select
-              id="doc-select"
-              value={selectedDoc}
-              onChange={(e) => setSelectedDoc(e.target.value)}
-              className="filter-select"
-            >
-              <option value="all">{t('allDocuments')}</option>
-              {allDocuments.map((doc) => (
-                <option key={doc} value={doc}>
-                  {doc}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Results Counter & Reset */}
-        <div className="filters-status-bar">
-          <span className="results-count-text">
-            <strong>{filteredRules.length}</strong> {t('matchingRulesCount')}
-            {(selectedCategory !== 'all' || selectedTopic !== 'all' || selectedDoc !== 'all' || searchQuery) && (
-              <span className="filtered-indicator"> (Filtered)</span>
+      {/* ── Rules Grid ── */}
+      <main className="explore-results-section" aria-label="Statutory Rules List">
+        <div className="results-header-row">
+          <h2 className="results-count-heading">
+            {isSearching ? (
+              <span>Searching...</span>
+            ) : (
+              <span>
+                Showing <strong>{displayedRules.length}</strong> rules
+                {searchResults !== null && ` for "${searchQuery}"`}
+              </span>
             )}
-          </span>
-
-          {(selectedCategory !== 'all' || selectedTopic !== 'all' || selectedDoc !== 'all' || searchQuery) && (
-            <button
-              type="button"
-              onClick={handleResetFilters}
-              className="btn btn-ghost btn-xs reset-filters-btn"
-            >
-              <RefreshCw size={12} aria-hidden />
-              <span>Reset All Filters</span>
-            </button>
-          )}
+          </h2>
         </div>
-      </section>
 
-      {/* ── Statutory Rules List & Cards ── */}
-      <section className="explore-rules-section" aria-label="Statutory Rules List">
-        {filteredRules.length === 0 ? (
-          <div className="explore-no-match-card">
-            <BookOpen size={48} className="no-match-icon" aria-hidden />
-            <h3>No Statutory Rules Matched</h3>
-            <p>
-              We could not find rules matching your filter criteria. Try clearing search terms or selecting &ldquo;All Categories&rdquo;.
-            </p>
-            <button
-              type="button"
-              onClick={handleResetFilters}
-              className="btn btn-secondary btn-sm"
-              style={{ marginTop: 'var(--space-4)' }}
-            >
-              Reset Filters
-            </button>
+        {displayedRules.length === 0 ? (
+          <div className="no-rules-found" style={{ textAlign: 'center', padding: 'var(--space-8)' }}>
+            <p>No statutory rules match the selected Part or Rule number.</p>
           </div>
         ) : (
-          <div className="explore-rules-grid" role="list">
-            {filteredRules.map((rule) => {
-              const ruleTitle = lang === 'hi' && rule.titleHi ? rule.titleHi : rule.titleEn
-              const excerpt = lang === 'hi' && rule.originalTextHi ? rule.originalTextHi : rule.originalTextEn
+          <div className="statutory-rules-grid">
+            {displayedRules.map((r) => {
+              const ruleNo = r.rule_no
+              const pageStart = r.page_start
+              const pageEnd = r.page_end
+              const pdfUrl = `/pdf/MP_Bhumi_Vikas_Rules_2012_upto_2025-03-06_EN.pdf#page=${pageStart}`
+              const snippet = 'snippet' in r ? (r as RuleSearchResultItem).snippet : null
+              const part = 'part' in r ? (r as RuleSummaryItem).part : null
 
               return (
-                <article
-                  key={rule.id}
-                  className="statutory-rule-card"
-                  role="listitem"
-                  onClick={() => handleOpenRule(rule)}
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault()
-                      handleOpenRule(rule)
-                    }
-                  }}
-                  aria-label={`Inspect ${rule.ruleNumber}: ${ruleTitle}`}
-                >
-                  {/* Card Header */}
-                  <div className="rule-card-top">
-                    <div className="rule-card-badges">
-                      <span className="rule-number-badge">
-                        {rule.ruleNumber}
-                      </span>
-                      <span className="rule-type-badge">
-                        {rule.documentType.toUpperCase()}
-                      </span>
-                      <Badge color="green">
-                        {rule.category}
-                      </Badge>
-                      <Badge color="grey">
-                        {rule.topic}
-                      </Badge>
-                    </div>
-
-                    <div className="rule-card-year">
-                      {rule.enactmentYear}
+                <div key={ruleNo} className="statutory-rule-card">
+                  <div className="rule-card-header">
+                    <div className="rule-card-badge-row">
+                      <span className="rule-card-number-badge">Rule {ruleNo}</span>
+                      {part && <span className="rule-card-part-badge">{part}</span>}
                     </div>
                   </div>
 
-                  {/* Title */}
-                  <h3 className="rule-card-title" lang={lang === 'hi' ? 'hi' : 'en'}>
-                    {ruleTitle}
-                  </h3>
+                  <h3 className="rule-card-title">{r.title}</h3>
 
-                  {/* Metadata Row: Document Title, Clause & PDF Page */}
-                  <div className="rule-card-meta-row">
-                    <span className="rule-source-doc">
-                      <BookOpen size={12} aria-hidden />
-                      {rule.documentTitle}
-                    </span>
-
-                    <span className="rule-clause-indicator">
-                      {rule.clause}
-                      {rule.subclause ? ` (${rule.subclause})` : ''}
-                    </span>
-
-                    {rule.pdfPage ? (
-                      <span className="rule-pdf-indicator" title={t('pdfPageAnchorSupported')}>
-                        <FileText size={12} aria-hidden />
-                        {t('pdfPageLabel')} {rule.pdfPage}
-                      </span>
-                    ) : (
-                      <span className="rule-unstamped-indicator">
-                        PDF Page: Unstamped
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Preserved Numerical Standards Chips (if applicable) */}
-                  {rule.keyNumericalValues && rule.keyNumericalValues.length > 0 && (
-                    <div className="rule-card-numerical-strip">
-                      {rule.keyNumericalValues.map((nv, idx) => (
-                        <span key={idx} className="numerical-mini-pill">
-                          <strong>{nv.label}:</strong> {nv.value} {nv.unit || ''}
-                        </span>
-                      ))}
-                    </div>
+                  {snippet && (
+                    <p className="rule-card-snippet" style={{ fontStyle: 'italic', color: 'var(--clr-neutral-600)', fontSize: '13px' }}>
+                      {snippet}
+                    </p>
                   )}
 
-                  {/* Excerpt of Original Legal Text */}
-                  <p className="rule-card-excerpt" lang={lang === 'hi' ? 'hi' : 'en'}>
-                    &ldquo;{excerpt.length > 170 ? `${excerpt.slice(0, 170)}…` : excerpt}&rdquo;
-                  </p>
-
-                  {/* Card Footer Actions */}
                   <div className="rule-card-footer">
-                    <button
-                      type="button"
-                      className="rule-inspect-btn"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleOpenRule(rule)
-                      }}
-                    >
-                      <Scale size={13} aria-hidden />
-                      <span>{t('openRuleDetails')}</span>
-                    </button>
+                    <div className="rule-card-pages">
+                      <FileText size={13} aria-hidden />
+                      <span>
+                        PDF Pages {pageStart}{pageEnd !== pageStart ? `–${pageEnd}` : ''}
+                      </span>
+                    </div>
 
-                    {rule.pdfUrl && (
+                    <div className="rule-card-actions" style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        type="button"
+                        onClick={() => handleInspectRule(ruleNo)}
+                        className="btn btn-secondary btn-xs"
+                      >
+                        <Scale size={13} aria-hidden />
+                        <span>Inspect Text</span>
+                      </button>
+
                       <a
-                        href={rule.pdfUrl}
+                        href={pdfUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="rule-pdf-external-link"
-                        onClick={(e) => e.stopPropagation()}
-                        title={`Open PDF at page ${rule.pdfPage}`}
+                        className="btn btn-primary btn-xs"
+                        title={`Open PDF at page ${pageStart}`}
                       >
-                        <span>PDF P.{rule.pdfPage}</span>
+                        <span>PDF</span>
                         <ExternalLink size={12} aria-hidden />
                       </a>
-                    )}
+                    </div>
                   </div>
-                </article>
+                </div>
               )
             })}
           </div>
         )}
-      </section>
+      </main>
 
-      {/* ── Statutory Rule Detail Inspector Modal ── */}
-      <RuleDetailModal
-        rule={inspectingRule}
-        open={isModalOpen}
-        onClose={handleCloseModal}
-      />
+      {/* ── Rule Detail Inspection Modal ── */}
+      {isModalOpen && (
+        <Modal
+          open={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          title={inspectingRule ? `Rule ${inspectingRule.rule}: ${inspectingRule.title}` : 'Rule Details'}
+          size="lg"
+        >
+          {isLoadingDetail ? (
+            <div style={{ padding: 'var(--space-8)', textAlign: 'center' }}>
+              <Spinner size="md" />
+            </div>
+          ) : inspectingRule ? (
+            <div className="rule-detail-modal-content">
+              <div style={{ display: 'flex', gap: '8px', marginBottom: 'var(--space-3)' }}>
+                <span className="badge badge-blue">{inspectingRule.part}</span>
+                <span className="badge badge-grey">Pages {inspectingRule.page_start}–{inspectingRule.page_end}</span>
+              </div>
+              <h3 style={{ marginBottom: 'var(--space-4)' }}>{inspectingRule.title}</h3>
+              <div
+                className="rule-detail-text"
+                style={{
+                  whiteSpace: 'pre-wrap',
+                  lineHeight: '1.7',
+                  fontFamily: 'monospace',
+                  fontSize: '13px',
+                  background: 'var(--clr-surface-alt, #f8fafc)',
+                  padding: 'var(--space-4)',
+                  borderRadius: 'var(--radius-md)',
+                  maxHeight: '400px',
+                  overflowY: 'auto',
+                }}
+              >
+                {inspectingRule.text}
+              </div>
+              <div style={{ marginTop: 'var(--space-4)', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                <a
+                  href={`/pdf/MP_Bhumi_Vikas_Rules_2012_upto_2025-03-06_EN.pdf#page=${inspectingRule.page_start}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-primary btn-sm"
+                >
+                  <FileText size={14} aria-hidden />
+                  <span>Open Official PDF (Page {inspectingRule.page_start})</span>
+                  <ExternalLink size={12} aria-hidden />
+                </a>
+              </div>
+            </div>
+          ) : (
+            <p>Could not load rule text from server.</p>
+          )}
+        </Modal>
+      )}
     </div>
   )
 }

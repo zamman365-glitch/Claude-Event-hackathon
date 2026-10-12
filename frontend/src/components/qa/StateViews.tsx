@@ -3,7 +3,8 @@
  * Insufficient-evidence, and Error states in the Q&A interface.
  */
 
-import { BookOpen, SearchX, AlertOctagon, RefreshCw, Sparkles, AlertTriangle, ShieldCheck } from 'lucide-react'
+import { useState } from 'react'
+import { BookOpen, SearchX, AlertOctagon, RefreshCw, Sparkles, AlertTriangle, ShieldCheck, HelpCircle, ArrowRight } from 'lucide-react'
 import type { QAAnswer } from '../../types'
 import { useLanguage } from '../../context/LanguageContext'
 import Skeleton from '../common/Skeleton'
@@ -202,6 +203,113 @@ export const ErrorStateView = ({ message, onRetry }: ErrorStateViewProps) => {
           </div>
         )}
       </Alert>
+    </div>
+  )
+}
+
+// ── 6. Needs Info State View ───────────────────────────────────
+interface NeedsInfoStateViewProps {
+  originalQuestion: string
+  clarifyingQuestion: string
+  onSubmitFollowUp: (followUp: string) => void
+  onReset?: () => void
+  isLoading?: boolean
+}
+
+export const NeedsInfoStateView = ({
+  originalQuestion,
+  clarifyingQuestion,
+  onSubmitFollowUp,
+  onReset,
+  isLoading = false,
+}: NeedsInfoStateViewProps) => {
+  const { t, lang } = useLanguage()
+  const [followUpText, setFollowUpText] = useState('')
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (followUpText.trim()) {
+      onSubmitFollowUp(followUpText.trim())
+    }
+  }
+
+  return (
+    <div className="qa-state-view qa-state-needs-info" role="region" aria-label="Clarification needed">
+      <div className="qa-state-header-band">
+        <EvidenceLevelBadge level="needs-verification" />
+        <span className="qa-state-timestamp">
+          {lang === 'hi' ? 'अतिरिक्त विवरण आवश्यक' : 'Clarification Required'}
+        </span>
+      </div>
+
+      <div className="qa-needs-info-body">
+        <div className="qa-needs-info-icon-circle" aria-hidden>
+          <HelpCircle size={32} />
+        </div>
+
+        <div className="qa-needs-info-text-block">
+          <h3 className="qa-state-title">
+            {lang === 'hi' ? 'विनियम निर्धारण हेतु अतिरिक्त जानकारी आवश्यक' : 'Additional Information Required'}
+          </h3>
+
+          <p className="qa-state-query-echo">
+            <strong>Question:</strong> &ldquo;{originalQuestion}&rdquo;
+          </p>
+
+          <div className="qa-clarifying-question-card">
+            <div className="qa-clarifying-label">
+              <Sparkles size={16} />
+              <strong>{lang === 'hi' ? 'स्पष्टीकरण प्रश्न:' : 'Clarifying Question:'}</strong>
+            </div>
+            <p className="qa-clarifying-question-text">{clarifyingQuestion}</p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="qa-follow-up-form">
+            <label htmlFor="follow-up-input" className="qa-follow-up-label">
+              {lang === 'hi'
+                ? 'लागू नियम व गणना हेतु छूटा हुआ विवरण दर्ज करें:'
+                : 'Enter missing parameters to compute exact statutory rule & setbacks:'}
+            </label>
+            <div className="qa-follow-up-input-row">
+              <input
+                id="follow-up-input"
+                type="text"
+                value={followUpText}
+                onChange={(e) => setFollowUpText(e.target.value)}
+                placeholder={
+                  lang === 'hi'
+                    ? 'उदा. सड़क की चौड़ाई 12 मी, प्लॉट क्षेत्रफल 200 वर्गमीटर...'
+                    : 'e.g., Road width is 12m, plot area 200 sqm, residential...'
+                }
+                className="qa-follow-up-input"
+                disabled={isLoading}
+                autoFocus
+              />
+              <button
+                type="submit"
+                className="btn btn-primary btn-sm qa-follow-up-submit-btn"
+                disabled={!followUpText.trim() || isLoading}
+              >
+                <span>{lang === 'hi' ? 'विवरण सबमिट करें' : 'Submit & Re-verify'}</span>
+                <ArrowRight size={14} aria-hidden />
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      {onReset && (
+        <div className="qa-needs-info-footer">
+          <button
+            type="button"
+            onClick={onReset}
+            className="btn btn-secondary btn-sm"
+          >
+            <RefreshCw size={14} aria-hidden />
+            <span>{t('retryQuery')}</span>
+          </button>
+        </div>
+      )}
     </div>
   )
 }

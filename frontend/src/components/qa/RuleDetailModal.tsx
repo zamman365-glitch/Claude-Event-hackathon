@@ -9,7 +9,7 @@
  * - Direct action to query the Q&A assistant about this rule
  */
 
-import { useState } from 'react'
+import { useState, lazy, Suspense } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   FileText,
@@ -28,8 +28,9 @@ import type { StatutoryRule } from '../../types'
 import { useLanguage } from '../../context/LanguageContext'
 import Modal from '../common/Modal'
 import Badge from '../common/Badge'
-import Architectural3DViewer from '../visuals/Architectural3DViewer'
 import type { SpatialScenarioKey } from '../visuals/IsometricFallback'
+
+const Architectural3DViewer = lazy(() => import('../visuals/Architectural3DViewer'))
 
 const SPATIAL_RULE_MAP: Record<string, SpatialScenarioKey> = {
   'rule-bvn-14-3': 'setback',
@@ -209,11 +210,13 @@ export const RuleDetailModal = ({ rule, open, onClose }: RuleDetailModalProps) =
             <h4 className="section-label-small" style={{ marginBottom: 'var(--space-2)' }}>
               🏛️ 3D Architectural Spatial Envelope Preview
             </h4>
-            <Architectural3DViewer
-              initialScenario={spatialScenario}
-              compact={true}
-              showControls={true}
-            />
+            <Suspense fallback={<div style={{ padding: 'var(--space-4)', textAlign: 'center' }}>Loading 3D View...</div>}>
+              <Architectural3DViewer
+                initialScenario={spatialScenario}
+                compact={true}
+                showControls={true}
+              />
+            </Suspense>
           </div>
         )}
 

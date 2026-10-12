@@ -23,6 +23,7 @@ import {
   NoResultsStateView,
   InsufficientEvidenceStateView,
   ErrorStateView,
+  NeedsInfoStateView,
 } from '../components/qa/StateViews'
 
 export const AskQuestion = () => {
@@ -119,6 +120,21 @@ export const AskQuestion = () => {
             answer={state.answer}
             onReset={reset}
           />
+        )}
+
+        {state.status === 'needs_info' && (
+          <div className="qa-needs-info-wrapper">
+            <NeedsInfoStateView
+              originalQuestion={state.original_question}
+              clarifyingQuestion={state.clarifying_question}
+              onSubmitFollowUp={(followUpText) => {
+                const combined = `${state.original_question} ${followUpText}`.trim()
+                setCurrentQuery(combined)
+                ask(combined)
+              }}
+              onReset={reset}
+            />
+          </div>
         )}
 
         {state.status === 'success' && (

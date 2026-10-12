@@ -128,6 +128,97 @@ export interface StatutoryRule {
   lastAmended?: string
 }
 
+// ── Calculation Details (from MP Bhumi Vikas backend) ─────────
+export interface FrontOpenSpaceCalculation {
+  rule: string
+  page: number
+  front_open_space_m: number
+  street_width_m: number
+  building_height_m: number
+  slab_label: string
+}
+
+export interface RearOpenSpaceCalculation {
+  rule: string
+  page: number
+  rear_open_space_m: number
+  plot_area_sqm: number
+  slab_label: string
+}
+
+export interface FarCalculation {
+  rule: string
+  page: number
+  use_group: string
+  category: string
+  far: number
+  plot_area_sqm?: number | null
+  max_builtup_area_sqm?: number | null
+}
+
+export interface FeesCalculation {
+  rule: string
+  page: number
+  built_up_area_sqm: number
+  use_group: string
+  application_fee_rs: number
+  permission_fee_rs: number
+  commercial_surcharge_rs?: number | null
+  total_fee_rs: number
+}
+
+export interface CalculationDetails {
+  front_open_space?: FrontOpenSpaceCalculation | null
+  rear_open_space?: RearOpenSpaceCalculation | null
+  far?: FarCalculation | null
+  fees?: FeesCalculation | null
+}
+
+export interface BackendCitation {
+  rule: string
+  page: number
+  quote: string
+}
+
+export interface BhumiVikasQueryResponse {
+  status: 'answered' | 'not_found' | 'needs_info'
+  answer: string
+  clarifying_question?: string | null
+  rule_no?: string | null
+  citations: BackendCitation[]
+  rules_version: string
+  warnings: string[]
+  calculation?: CalculationDetails | null
+  disclaimer: string
+}
+
+export interface RuleSummaryItem {
+  rule_no: string
+  sub_rule?: string | null
+  title: string
+  part: string
+  page_start: number
+  page_end: number
+}
+
+export interface RuleSearchResultItem {
+  rule_no: string
+  title: string
+  page_start: number
+  page_end: number
+  snippet: string
+}
+
+export interface RuleDetailItem {
+  rule: string
+  title: string
+  part: string
+  page_start: number
+  page_end: number
+  text: string
+  text_norm: string
+}
+
 /** The structured answer returned by the Q&A engine */
 export interface QAAnswer {
   id: string
@@ -151,6 +242,18 @@ export interface QAAnswer {
   generatedAt: string
   /** Whether this came from mock/demo data */
   isMockData: boolean
+  /** Raw backend status */
+  status?: 'answered' | 'not_found' | 'needs_info'
+  /** Clarifying question when status is needs_info */
+  clarifying_question?: string | null
+  /** Primary rule number */
+  rule_no?: string | null
+  /** Rules version returned by backend */
+  rules_version?: string
+  /** Post-consolidation amendment warnings or conditions */
+  warnings?: string[]
+  /** Structured calculations (setbacks, FAR, fees) */
+  calculation?: CalculationDetails | null
 }
 
 /** A query history entry */
@@ -168,6 +271,12 @@ export type AskState =
   | { status: 'idle' }
   | { status: 'loading' }
   | { status: 'success'; answer: QAAnswer }
+  | {
+      status: 'needs_info'
+      answer: QAAnswer
+      clarifying_question: string
+      original_question: string
+    }
   | { status: 'no-results'; query: string }
   | { status: 'insufficient-evidence'; answer: QAAnswer }
   | { status: 'error'; message: string }
