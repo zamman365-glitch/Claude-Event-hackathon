@@ -12,37 +12,97 @@ Supported providers:
 
 from __future__ import annotations
 import json
+import logging
 import os
+from pathlib import Path
 import re
+import time
 from typing import Any, Dict, List, Optional
 import httpx
 
+try:
+    from dotenv import load_dotenv
+    _ENV_PATH = Path(__file__).resolve().parent / ".env"
+    if _ENV_PATH.exists():
+        load_dotenv(dotenv_path=_ENV_PATH)
+    else:
+        load_dotenv()
+except ImportError:
+    pass
+
 from schemas import LLMAnswerOutput, ParsedQuery
 
-
-# Load environment variables if python-dotenv is present or from os.environ
-def _load_env_file():
-    env_path = os.path.join(os.getcwd(), ".env")
-    if os.path.exists(env_path):
-        with open(env_path, "r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if line and not line.startswith("#") and "=" in line:
-                    k, v = line.split("=", 1)
-                    k, v = k.strip(), v.strip().strip("\"'")
-                    if k not in os.environ:
-                        os.environ[k] = v
+logger = logging.getLogger("bhumi_vikas.llm")
 
 
-_load_env_file()
+class LLMProviderError(Exception):
+    """Raised when an external LLM provider call fails."""
+    def __init__(self, message: str, status_code: Optional[int] = None, details: Optional[str] = None):
+        super().__init__(message)
+        self.status_code = status_code
+        self.details = details
 
-PROVIDER = os.getenv("PROVIDER", "mock").lower()
-MODEL_FAST = os.getenv("MODEL_FAST", "gemini-2.5-flash")
-MODEL_ANSWER = os.getenv("MODEL_ANSWER", "gemini-2.5-flash")
 
+def sanitize_secret_text(text: str) -> str:
+    """Redacts API keys and sensitive tokens from error strings or URLs."""
+    if not text:
+        return ""
+    text = re.sub(r"([?&]key=)[^&\s]+", r"\1[REDACTED]", text)
+    text = re.sub(r"(Bearer\s+)[a-zA-Z0-9_\-\.]+", r"\1[REDACTED]", text, flags=re.IGNORECASE)
+    return text
+
+
+def strip_markdown_fences(text: str) -> str:
+    """Strips markdown code blocks like ```json ... ``` or ``` ... ```."""
+    text = text.strip()
+    if text.startswith("```"):
+        text = re.sub(r"^```(?:json)?\s*", "", text, flags=re.IGNORECASE)
+        text = re.sub(r"\s*```$", "", text)
+    return text.strip()
+
+
+def get_provider() -> str:
+    """Returns the currently active provider ('mock', 'gemini', 'openai', 'cerebras')."""
+    if os.getenv("LLM_MOCK", "").lower() in ("1", "true", "yes"):
+        return "mock"
+    return os.getenv("PROVIDER", "mock").strip().lower()
+
+
+def is_mock() -> bool:
+    """True if system is running in mock/demo mode."""
+    return get_provider() == "mock"
+
+
+def get_model_fast() -> str:
+    """Returns the fast model name read from environment variable MODEL_FAST."""
+    provider = get_provider()
+    model = os.getenv("MODEL_FAST", "").strip()
+    if not model:
+        if is_mock():
+            return "mock"
+        raise LLMProviderError(f"MODEL_FAST environment variable is required for provider '{provider}' but not set.", status_code=400)
+    return model
+
+
+def get_model_answer() -> str:
+    """Returns the answer model name read from environment variable MODEL_ANSWER."""
+    provider = get_provider()
+    model = os.getenv("MODEL_ANSWER", "").strip()
+    if not model:
+        if is_mock():
+            return "mock"
+        raise LLMProviderError(f"MODEL_ANSWER environment variable is required for provider '{provider}' but not set.", status_code=400)
+    return model
+
+
+# Module-level references for backwards-compatibility
+PROVIDER = get_provider()
+MODEL_FAST = os.getenv("MODEL_FAST", "")
+MODEL_ANSWER = os.getenv("MODEL_ANSWER", "")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "") or os.getenv("CEREBRAS_API_KEY", "")
 OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.cerebras.ai/v1" if PROVIDER == "cerebras" else "https://api.openai.com/v1")
+
 
 
 def _is_hindi(text: str) -> bool:
@@ -101,12 +161,9 @@ def parse_query(query: str) -> ParsedQuery:
     ]
     is_out_of_scope = any(kw in q_lower for kw in out_of_scope_keywords)
 
-    if PROVIDER in ["gemini", "openai", "cerebras"]:
-        try:
-            return _parse_query_llm(query, lang)
-        except Exception:
-            # Fallback to deterministic offline parsing if API call fails
-            pass
+    provider = get_provider()
+    if provider in ["gemini", "openai", "cerebras"]:
+        return _parse_query_llm(query, lang)
 
     return _parse_query_offline(query, lang, is_out_of_scope)
 
@@ -162,15 +219,22 @@ Output a JSON object matching this schema:
   "floors": number or null
 }}
 """
-    if PROVIDER == "gemini":
+    provider = get_provider()
+    model = get_model_fast()
+    if provider == "gemini":
         schema = ParsedQuery.model_json_schema()
-        raw_json = _call_gemini_json(MODEL_FAST, prompt, schema)
-        return ParsedQuery.model_validate_json(raw_json)
-    elif PROVIDER in ["openai", "cerebras"]:
-        raw_json = _call_openai_json(MODEL_FAST, prompt)
-        return ParsedQuery.model_validate_json(raw_json)
+        raw_json = _call_gemini_json(model, prompt, schema)
+    elif provider in ["openai", "cerebras"]:
+        raw_json = _call_openai_json(model, prompt)
+    else:
+        raise LLMProviderError(f"Unsupported provider: {provider}")
 
-    raise ValueError(f"Unsupported provider: {PROVIDER}")
+    try:
+        clean_json = strip_markdown_fences(raw_json)
+        return ParsedQuery.model_validate_json(clean_json)
+    except Exception as e:
+        logger.error(f"Pydantic validation failed for parsed query JSON: {e}")
+        raise LLMProviderError(f"JSON validation failed on parse_query output: {e}", status_code=502)
 
 
 def generate_answer(
@@ -199,18 +263,15 @@ def generate_answer(
             citations=[],
         )
 
-    if PROVIDER in ["gemini", "openai", "cerebras"]:
-        try:
-            return _generate_answer_llm(
-                query_parsed=query_parsed,
-                original_query=original_query,
-                retrieved_chunks=retrieved_chunks,
-                calculator_output=calculator_output,
-                retry_feedback=retry_feedback,
-            )
-        except Exception:
-            # Fallback to offline answer generation if live API call fails
-            pass
+    provider = get_provider()
+    if provider in ["gemini", "openai", "cerebras"]:
+        return _generate_answer_llm(
+            query_parsed=query_parsed,
+            original_query=original_query,
+            retrieved_chunks=retrieved_chunks,
+            calculator_output=calculator_output,
+            retry_feedback=retry_feedback,
+        )
 
     return _generate_answer_offline(
         query_parsed=query_parsed,
@@ -569,19 +630,32 @@ STRICT INSTRUCTIONS:
 {f'RETRY WARNING FROM PREVIOUS ATTEMPT: {retry_feedback}' if retry_feedback else ''}
 """
 
-    if PROVIDER == "gemini":
+    provider = get_provider()
+    model = get_model_answer()
+    if provider == "gemini":
         schema = LLMAnswerOutput.model_json_schema()
-        raw_json = _call_gemini_json(MODEL_ANSWER, prompt, schema)
-        return LLMAnswerOutput.model_validate_json(raw_json)
-    elif PROVIDER in ["openai", "cerebras"]:
-        raw_json = _call_openai_json(MODEL_ANSWER, prompt)
-        return LLMAnswerOutput.model_validate_json(raw_json)
+        raw_json = _call_gemini_json(model, prompt, schema)
+    elif provider in ["openai", "cerebras"]:
+        raw_json = _call_openai_json(model, prompt)
+    else:
+        raise LLMProviderError(f"Unknown provider: {provider}")
 
-    raise ValueError(f"Unknown provider: {PROVIDER}")
+    try:
+        clean_json = strip_markdown_fences(raw_json)
+        return LLMAnswerOutput.model_validate_json(clean_json)
+    except Exception as e:
+        logger.error(f"Pydantic validation failed for answer output JSON: {e}")
+        raise LLMProviderError(f"JSON validation failed on generate_answer output: {e}", status_code=502)
 
 
 def _call_gemini_json(model: str, prompt: str, schema: Optional[Dict[str, Any]] = None) -> str:
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={GEMINI_API_KEY}"
+    api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    if not api_key:
+        raise LLMProviderError("GEMINI_API_KEY is not set or empty", status_code=401)
+    if not model:
+        raise LLMProviderError("Gemini model name is not set (MODEL_FAST / MODEL_ANSWER)", status_code=400)
+
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
     payload: Dict[str, Any] = {
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {"responseMimeType": "application/json"},
@@ -589,17 +663,68 @@ def _call_gemini_json(model: str, prompt: str, schema: Optional[Dict[str, Any]] 
     if schema:
         payload["generationConfig"]["responseSchema"] = schema
 
-    with httpx.Client(timeout=30.0) as client:
-        resp = client.post(url, json=payload)
-        resp.raise_for_status()
-        data = resp.json()
-        return data["candidates"][0]["content"]["parts"][0]["text"]
+    timeout = httpx.Timeout(45.0, connect=10.0)
+    for attempt in range(2):
+        try:
+            with httpx.Client(timeout=timeout) as client:
+                resp = client.post(url, json=payload)
+                if resp.status_code in [429, 500, 502, 503, 504] and attempt == 0:
+                    time.sleep(2.0)
+                    continue
+                resp.raise_for_status()
+                data = resp.json()
+                raw_text = data["candidates"][0]["content"]["parts"][0]["text"]
+                return strip_markdown_fences(raw_text)
+        except httpx.HTTPStatusError as e:
+            if attempt == 0 and e.response.status_code in [429, 500, 502, 503, 504]:
+                time.sleep(2.0)
+                continue
+            status_code = e.response.status_code
+            sanitized_body = sanitize_secret_text(e.response.text)
+            err_msg = f"Gemini API returned HTTP {status_code}: {sanitized_body}"
+            logger.error(sanitize_secret_text(err_msg))
+            raise LLMProviderError(err_msg, status_code=status_code, details=sanitized_body) from e
+        except httpx.TimeoutException as e:
+            if attempt == 0:
+                time.sleep(2.0)
+                continue
+            err_msg = f"Gemini API request timed out after 45s for model '{model}'"
+            logger.error(err_msg)
+            raise LLMProviderError(err_msg, status_code=504) from e
+        except (KeyError, IndexError, json.JSONDecodeError) as e:
+            err_msg = f"Failed to parse Gemini response structure: {e}"
+            logger.error(err_msg)
+            raise LLMProviderError(err_msg, status_code=502) from e
+        except LLMProviderError:
+            raise
+        except Exception as e:
+            sanitized = sanitize_secret_text(str(e))
+            logger.error(f"Unexpected Gemini error: {sanitized}")
+            raise LLMProviderError(f"Gemini client error: {sanitized}", status_code=500) from e
+
+    raise LLMProviderError("Gemini request failed after retry", status_code=502)
 
 
 def _call_openai_json(model: str, prompt: str) -> str:
-    url = f"{OPENAI_BASE_URL.rstrip('/')}/chat/completions"
+    provider = get_provider()
+    api_key = (
+        (os.getenv("CEREBRAS_API_KEY", "").strip() or os.getenv("OPENAI_API_KEY", "").strip())
+        if provider == "cerebras"
+        else os.getenv("OPENAI_API_KEY", "").strip()
+    )
+    if not api_key:
+        key_name = "CEREBRAS_API_KEY" if provider == "cerebras" else "OPENAI_API_KEY"
+        raise LLMProviderError(f"{key_name} is not set or empty", status_code=401)
+    if not model:
+        raise LLMProviderError(f"{provider.capitalize()} model name is not set (MODEL_FAST / MODEL_ANSWER)", status_code=400)
+
+    base_url = os.getenv(
+        "OPENAI_BASE_URL",
+        "https://api.cerebras.ai/v1" if provider == "cerebras" else "https://api.openai.com/v1"
+    ).strip()
+    url = f"{base_url.rstrip('/')}/chat/completions"
     headers = {
-        "Authorization": f"Bearer {OPENAI_API_KEY}",
+        "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
     }
     payload = {
@@ -607,8 +732,57 @@ def _call_openai_json(model: str, prompt: str) -> str:
         "messages": [{"role": "user", "content": prompt}],
         "response_format": {"type": "json_object"},
     }
-    with httpx.Client(timeout=30.0) as client:
-        resp = client.post(url, headers=headers, json=payload)
-        resp.raise_for_status()
-        data = resp.json()
-        return data["choices"][0]["message"]["content"]
+    timeout = httpx.Timeout(45.0, connect=10.0)
+    for attempt in range(2):
+        try:
+            with httpx.Client(timeout=timeout) as client:
+                resp = client.post(url, headers=headers, json=payload)
+                if resp.status_code in [429, 500, 502, 503, 504] and attempt == 0:
+                    time.sleep(2.0)
+                    continue
+                resp.raise_for_status()
+                data = resp.json()
+                raw_text = data["choices"][0]["message"]["content"]
+                return strip_markdown_fences(raw_text)
+        except httpx.HTTPStatusError as e:
+            if attempt == 0 and e.response.status_code in [429, 500, 502, 503, 504]:
+                time.sleep(2.0)
+                continue
+            status_code = e.response.status_code
+            sanitized_body = sanitize_secret_text(e.response.text)
+            err_msg = f"{provider.capitalize()} API returned HTTP {status_code}: {sanitized_body}"
+            logger.error(sanitize_secret_text(err_msg))
+            raise LLMProviderError(err_msg, status_code=status_code, details=sanitized_body) from e
+        except httpx.TimeoutException as e:
+            if attempt == 0:
+                time.sleep(2.0)
+                continue
+            err_msg = f"{provider.capitalize()} API request timed out after 45s for model '{model}'"
+            logger.error(err_msg)
+            raise LLMProviderError(err_msg, status_code=504) from e
+        except (KeyError, IndexError, json.JSONDecodeError) as e:
+            err_msg = f"Failed to parse {provider} response structure: {e}"
+            logger.error(err_msg)
+            raise LLMProviderError(err_msg, status_code=502) from e
+        except LLMProviderError:
+            raise
+        except Exception as e:
+            sanitized = sanitize_secret_text(str(e))
+            logger.error(f"Unexpected {provider} error: {sanitized}")
+            raise LLMProviderError(f"{provider.capitalize()} client error: {sanitized}", status_code=500) from e
+
+    raise LLMProviderError(f"{provider.capitalize()} request failed after retry", status_code=502)
+
+
+def call_raw_probe(prompt: str = 'Return a JSON object with key "status" set to "ok": {"status": "ok"}') -> str:
+    """Trivial JSON request probe for health/diagnostic check."""
+    provider = get_provider()
+    if provider == "mock":
+        return json.dumps({"status": "ok", "provider": "mock"})
+    model = get_model_fast()
+    if provider == "gemini":
+        return _call_gemini_json(model, prompt)
+    elif provider in ["openai", "cerebras"]:
+        return _call_openai_json(model, prompt)
+    raise LLMProviderError(f"Unsupported provider: {provider}")
+

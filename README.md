@@ -48,26 +48,44 @@ python eval.py
 
 ### Step 1: Install Dependencies
 ```bash
-pip install fastapi uvicorn pydantic httpx pytest
+pip install -r requirements.txt
 ```
+*(Includes `fastapi`, `uvicorn`, `pydantic`, `httpx`, `pytest`, `python-dotenv`)*
 
-### Step 2: (Optional) Set Environment Variables
+### Step 2: Configure LLM Provider in `.env`
 Copy `.env.example` to `.env`:
 ```bash
 cp .env.example .env
 ```
-Supported `PROVIDER` values: `gemini`, `openai`, `cerebras`, or `mock` (offline default for tests).
+Supported `PROVIDER` values: `gemini`, `openai`, `cerebras`, or `mock` (deterministic offline default for tests).
 
-### Step 3: Run Tests
+Set your provider and credentials in `.env`:
+```env
+PROVIDER=gemini
+MODEL_FAST=gemini-2.0-flash
+MODEL_ANSWER=gemini-2.0-flash
+GEMINI_API_KEY=your_gemini_api_key_here
+```
+*(Note: `.env` is listed in `.gitignore` — never commit API keys to version control!)*
+
+### Step 3: Diagnose & Validate LLM Connection
+Run the diagnostic script to verify model configuration, API keys, and structured JSON output:
+```bash
+python scripts/check_llm.py
+```
+This tests both a raw JSON probe and `parse_query()`, reporting HTTP status codes (401/403 for bad keys, 404 for bad model names, 429 for quotas, timeouts, etc.) without leaking secrets.
+
+### Step 4: Run Tests
 ```bash
 python -m pytest -v
 ```
 
-### Step 4: Start Server & Open Clerk Counter UI
+### Step 5: Start Server & Open Clerk Counter UI
 ```bash
-uvicorn app:app --reload --port 8000
+python -m uvicorn app:app --reload --port 8000
 ```
-Open **`http://localhost:8000`** in your browser.
+Open **`http://localhost:8000`** in your browser. (The UI displays a **Demo mode** banner automatically whenever `mock` mode is active).
+
 
 ---
 

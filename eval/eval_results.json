@@ -8,7 +8,7 @@
     {
       "id": 1,
       "passed": true,
-      "latency_ms": 3.0484999952022918,
+      "latency_ms": 4.083899999386631,
       "response": {
         "status": "answered",
         "answer": "Under Rule 56(1)(a), the minimum front open space required is 3.6 meters.",
@@ -50,7 +50,7 @@
     {
       "id": 2,
       "passed": true,
-      "latency_ms": 4.080599996086676,
+      "latency_ms": 5.18989999909536,
       "response": {
         "status": "answered",
         "answer": "Under Rule 17, for a farm house on agricultural land, the minimum plot size is 0.40 hectare and the maximum FAR is 0.10.",
@@ -77,7 +77,7 @@
     {
       "id": 3,
       "passed": true,
-      "latency_ms": 1.405000002705492,
+      "latency_ms": 1.3837000005878508,
       "response": {
         "status": "answered",
         "answer": "Under Rule 23, permission remains valid for 3 years, and may be revalidated for one year at a time up to a maximum period of five years.",
@@ -99,7 +99,7 @@
     {
       "id": 4,
       "passed": true,
-      "latency_ms": 2.0167000038782135,
+      "latency_ms": 2.3266999996849336,
       "response": {
         "status": "answered",
         "answer": "Under Rule 28, if the Authority fails to intimate in writing its refusal within the prescribed limitation period under Section 30(5) of the Act, the permission shall be deemed to have been sanctioned.",
@@ -121,7 +121,7 @@
     {
       "id": 5,
       "passed": true,
-      "latency_ms": 2.17500000144355,
+      "latency_ms": 1.8787999979394954,
       "response": {
         "status": "answered",
         "answer": "Under Rule 52, balconies or buildings near low and medium voltage lines must maintain a minimum vertical clearance of 2.5 meters and horizontal clearance of 1.2 meters.",
@@ -143,7 +143,7 @@
     {
       "id": 6,
       "passed": true,
-      "latency_ms": 1.8424000008963048,
+      "latency_ms": 1.9086000029346906,
       "response": {
         "status": "answered",
         "answer": "Under Rule 18, plans must be prepared and signed by a registered architect, structural engineer, engineer, supervisor, or town planner according to their license qualifications, along with the applicant/owner.",
@@ -165,7 +165,7 @@
     {
       "id": 7,
       "passed": true,
-      "latency_ms": 2.062100000330247,
+      "latency_ms": 2.655899999808753,
       "response": {
         "status": "answered",
         "answer": "Under Rule 14, an application for building permission in Appendix A-2 must be accompanied by documents, plans and statements in quadruplicate, including ownership documents, site plan, and fees.",
@@ -187,7 +187,7 @@
     {
       "id": 8,
       "passed": true,
-      "latency_ms": 1.530800000182353,
+      "latency_ms": 1.6673999998602085,
       "response": {
         "status": "answered",
         "answer": "Building permission fees are governed by Rule 21, including application fee of Rs. 1 per sq. m under Rule 21(2)(ii) and slab-based permission fees specified in Rule 21(3)(b).",
@@ -209,7 +209,7 @@
     {
       "id": 9,
       "passed": true,
-      "latency_ms": 3.2248999996227212,
+      "latency_ms": 2.6450999976077583,
       "response": {
         "status": "answered",
         "answer": "Under Rule 24, no deviation from the sanctioned plan is permissible if it affects the front open space or exceeds 30% of permissible FAR; minor alterations require permission under Rule 21(3)(b) Item 8.",
@@ -231,7 +231,7 @@
     {
       "id": 10,
       "passed": true,
-      "latency_ms": 3.7317000023904257,
+      "latency_ms": 3.040999999939231,
       "response": {
         "status": "answered",
         "answer": "Under Rule 56(2)(a), for a residential plot of 150 sq m (above 40 and up to 150 sq m), the minimum rear open space is 1.50 meters.",
@@ -281,7 +281,7 @@
     {
       "id": 11,
       "passed": true,
-      "latency_ms": 4.153000001679175,
+      "latency_ms": 3.526100001181476,
       "response": {
         "status": "answered",
         "answer": "Under Rule 2(5)(c) as amended on 28 August 2026, for plots up to 500 sq m conforming to the approved Development Plan, separate development permission is NOT required; building permission can be directly granted by the local body.",
@@ -333,7 +333,7 @@
     {
       "id": 12,
       "passed": true,
-      "latency_ms": 1.1940999975195155,
+      "latency_ms": 1.2800000004062895,
       "response": {
         "status": "answered",
         "answer": "Under Rule 103 (Provisions of development plan to take precedence), where provisions of the Development Plan and these rules conflict, the provisions of the Development Plan shall prevail.",
@@ -355,7 +355,7 @@
     {
       "id": 13,
       "passed": true,
-      "latency_ms": 1.6609000012977049,
+      "latency_ms": 1.8726999987848103,
       "response": {
         "status": "answered",
         "answer": "Under Rule 83, provision for lifts is mandatory for any building more than 12.5 meters in height (which includes buildings taller than 15 m), designed in accordance with the National Building Code.",
@@ -377,7 +377,7 @@
     {
       "id": 14,
       "passed": true,
-      "latency_ms": 2.914999997301493,
+      "latency_ms": 3.6308999988250434,
       "response": {
         "status": "answered",
         "answer": "म.प्र. भूमि विकास नियम 56(1)(क) के अनुसार, सामने की ओर न्यूनतम 3.0 मीटर खुली जगह (front open space) छोड़नी होगी।",
@@ -434,7 +434,7 @@
     {
       "id": 15,
       "passed": true,
-      "latency_ms": 1.6667000018060207,
+      "latency_ms": 1.8512999995436985,
       "response": {
         "status": "answered",
         "answer": "भवन निर्माण अनुमति की फीस नियम 21 में दी गई है, जिसमें आवेदन शुल्क रु 1 प्रति वर्ग मीटर और नियम 21(3)(ख) के अनुसार स्लैब-वार अनुमति शुल्क लगता है।",
@@ -456,7 +456,7 @@
     {
       "id": 16,
       "passed": true,
-      "latency_ms": 0.01670000347075984,
+      "latency_ms": 0.036699999327538535,
       "response": {
         "status": "not_found",
         "answer": "not found",
@@ -472,7 +472,7 @@
     {
       "id": 17,
       "passed": true,
-      "latency_ms": 0.012899996363557875,
+      "latency_ms": 0.017000002117129043,
       "response": {
         "status": "not_found",
         "answer": "not found",

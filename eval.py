@@ -52,7 +52,21 @@ def run_evaluation() -> Dict[str, Any]:
         exp_kw = item.get("expected_keyword")
 
         start_t = time.perf_counter()
-        resp = process_query(question)
+        try:
+            resp = process_query(question)
+        except Exception as e:
+            latency_ms = (time.perf_counter() - start_t) * 1000.0
+            print(f"Q{q_id:02d} [FAIL] | Provider Error: {type(e).__name__} | {latency_ms:.1f}ms")
+            print(f"    Q: {question[:75]}...")
+            print(f"    Error: {str(e)[:85]}...")
+            print("-" * 80)
+            results.append({
+                "id": q_id,
+                "passed": False,
+                "latency_ms": latency_ms,
+                "error": str(e),
+            })
+            continue
         latency_ms = (time.perf_counter() - start_t) * 1000.0
 
         # Check status

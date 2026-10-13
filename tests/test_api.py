@@ -146,3 +146,36 @@ def test_root_endpoint():
     resp = client.get("/")
     assert resp.status_code == 200
 
+
+def test_health_mock_flag_reflects_provider(monkeypatch):
+    # Mock mode
+    monkeypatch.setenv("PROVIDER", "mock")
+    monkeypatch.delenv("LLM_MOCK", raising=False)
+    resp = client.get("/api/health")
+    assert resp.status_code == 200
+    assert resp.json()["mock"] is True
+    assert resp.json()["provider"] == "mock"
+
+    # Real provider mode
+    monkeypatch.setenv("PROVIDER", "gemini")
+    resp_gem = client.get("/api/health")
+    assert resp_gem.status_code == 200
+    assert resp_gem.json()["mock"] is False
+    assert resp_gem.json()["provider"] == "gemini"
+
+
+def test_real_provider_failure_returns_http_error(monkeypatch):
+    monkeypatch.setenv("PROVIDER", "gemini")
+    monkeypatch.delenv("LLM_MOCK", raising=False)
+    monkeypatch.setenv("MODEL_FAST", "gemini-2.0-flash")
+    monkeypatch.setenv("MODEL_ANSWER", "gemini-2.0-flash")
+    monkeypatch.setenv("GEMINI_API_KEY", "")  # Missing key triggers 401
+
+    resp = client.post("/api/query", json={
+        "query": "What is the front setback for a 200 sq m plot on a 9 m road?"
+    })
+    # Must return clear HTTP error status, never 200 with fake mock answer
+    assert resp.status_code in [400, 401, 502]
+    assert "LLM Provider Error" in resp.json()["detail"]
+
+
