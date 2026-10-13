@@ -14,7 +14,8 @@ import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-AMENDMENTS_PATH = Path("data/amendments.json")
+BASE_DIR = Path(__file__).resolve().parent
+AMENDMENTS_PATH = BASE_DIR / "data" / "amendments.json"
 RULES_VERSION = "consolidated up to 2025-03-06"
 
 

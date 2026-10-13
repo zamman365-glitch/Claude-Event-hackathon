@@ -14,7 +14,8 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-TABLES_PATH = Path("data/tables.json")
+BASE_DIR = Path(__file__).resolve().parent
+TABLES_PATH = BASE_DIR / "data" / "tables.json"
 
 
 def load_tables() -> Dict[str, Any]:
